@@ -61,7 +61,7 @@ class LevelAndRandomNumber
     }
     private int LevelDown()
     {
-        this.level -= 1;
+        if (this.level != 1) this.level -= 1;
         return level;
     }
     private int Randomized()
