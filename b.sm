@@ -62,7 +62,6 @@ L0001:   ; st ==========================================
 L0010:   ; add =========================================
          a.ir and b.m12 c.mar            ; extract the address, place into mar
          rd                              ; read the data in mdr
-         a.mdr c.ac                      ; copy the value in mdr to accumulator
          a.ac add b.mdr c.ac br@fetch    ; add values in mdr and accumulator, store in accumulator, fetch a new instruction
 
 L0011:   ; sub =========================================
@@ -95,24 +94,23 @@ L0111:   ; subr ========================================
          a.ac sub b.mdr c.ac br@fetch    ; subtract values in mdr and accumulator, store in accumulator, fetch a new instruction
 
 L1000:   ; ldi =========================================
-         a.ir and b.m12 c.ac br@fetch    ; load accumulator with data from the machine instruction, fetch a new instruction
+         a.ir and b.m12 c.ac br@fetch    ; load accumulator with zero extended data from the machine instruction, fetch a new instruction
 
 L1001:   ; asp =========================================
-         a.ir and b.m12 c.mar            ; extract the address, place into mar
-         rd                              ; read the data in mdr
-         a.sp add b.mdr c.sp br@fetch    ; resize stack by adding data from mdr to stack pointer, save the new size, fetch a new instruction
+         a.ir sext b.m12 c.mar           ; extract the address, sign extend to 16 bits and place into mar
+         a.sp add b.mdr c.sp br@fetch    ; resize stack by adding data from mdr to stack pointer, fetch a new instruction
 
 L1010:   ; call ========================================
          a.sp sub b.1 c.sp                  ; decrement sp
          a.sp c.mar                         ; load mar from sp
          a.pc c.mdr                         ; load pc with return address in pc
-         a.ir and b.m12 c.pc wr br@fetch    ; load pc, write, branch to subroutine
+         a.ir and b.m12 c.pc wr br@fetch    ; load pc with instruction following the call, write, branch to subroutine
 
 L1011:   ; ret =========================================
          a.sp c.mar                    ; store sp in mar
          rd                            ; start read operation
-         a.mdr c.pc                    ; move return address from mdr to pc
-         a.sp add b.1 c.sp br@fetch    ; increment sp, fetch a new instruction
+         a.sp add b.1 c.sp             ; increment sp
+         a.mdr c.pc br@fetch           ; move return address from mdr to pc, fetch a new instruction
 
 L1100:   ; br ==========================================
          a.ir and b.m12 c.pc br@fetch    ; branch to a new address, fetch new instruction
