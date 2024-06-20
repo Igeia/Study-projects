@@ -1,1 +1,1 @@
-This branch showcases most difficult tasks I've faced while studying *Constructing a Microprogrammed Computer* by Anthony J. Dos Reis.
+This branch showcases most difficult assignments I've completed while studying *Constructing a Microprogrammed Computer* by Anthony J. Dos Reis.
