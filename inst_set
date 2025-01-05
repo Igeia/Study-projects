@@ -1,0 +1,815 @@
+;        Basic Instruction Set                      b.sm
+
+         ;==============================================
+         ; Fetch machine instruction, increment pc
+
+fetch:   a.pc c.mar
+         a.pc add b.1 c.pc rd
+
+         ;==============================================
+         ; Decode instruction
+		 
+         ; How to proceed:
+         ; 1) Analyze the first bit by adding 0 to it. If the n (negative) flag is 1, set the 1st bit to 1 and jump to L1; else execute the next instruction;
+         ; 2) Shift left logically by 1 bit the next bit in the opcode from the instruction register;
+         ; 3) Analyze the shifted out bit. If it's 1, set the bit to 1 and jump to the next label; else execute the next instruction;
+         ; 4) Repeat steps 2 and 3 until the analysis of all 4 bits is complete.
+         ; We are done: all 4 bits are decoded, we can now execute the necessary machine instruction.
+
+         a.mdr add b.0 c.ir neg@L1
+L0:      a.ir sll b.1 c.dc neg@L01
+L00:     a.dc sll b.1 c.dc neg@L001
+L000:    a.dc sll b.1 c.dc neg@L0001
+         br@L0000
+
+L1:      a.ir sll b.1 c.dc neg@L11
+L10:     a.dc sll b.1 c.dc neg@L101
+L100:    a.dc sll b.1 c.dc neg@L1001
+         br@L1000
+
+L01:     a.dc sll b.1 c.dc neg@L011
+L010:    a.dc sll b.1 c.dc neg@L0101
+         br@L0100
+
+L11:     a.dc sll b.1 c.dc neg@L111
+L110:    a.dc sll b.1 c.dc neg@L1101
+         br@L1100
+
+L001:    a.dc sll b.1 c.dc neg@L0011
+         br@L0010
+
+L011:    a.dc sll b.1 c.dc neg@L0111
+         br@L0110
+
+L101:    a.dc sll b.1 c.dc neg@L1011
+         br@L1010
+
+L111:    a.dc sll b.1 c.dc neg@L1111
+         br@L1110
+
+         ;==============================================
+         ; Interpret machine instruction
+
+L0000:   ; ld ==========================================
+         a.ir and b.m12 c.mar    ; extract the address, place into mar
+         rd                      ; read the data in mdr
+         a.mdr c.ac br@fetch     ; copy the data from mdr to accumulator, fetch a new instruction
+
+L0001:   ; st ==========================================
+         a.ir and b.m12 c.mar    ; extract the address, place into mar
+         a.ac c.mdr              ; copy the value in accumulator to mdr
+         wr br@fetch             ; write the data to the specified address, fetch a new instruction
+
+L0010:   ; add =========================================
+         a.ir and b.m12 c.mar            ; extract the address, place into mar
+         rd                              ; read the data in mdr
+         a.ac add b.mdr c.ac br@fetch    ; add values in mdr and accumulator, store in accumulator, fetch a new instruction
+
+L0011:   ; sub =========================================
+         a.ir and b.m12 c.mar            ; extract the address, place into mar
+         rd                              ; read the data in mdr
+         a.ac sub b.mdr c.ac br@fetch    ; subtract values in mdr and accumulator, store in accumulator, fetch a new instruction
+
+L0100:   ; ldr =========================================
+         a.ir and b.m12 c.mar   ; extract the address, place into mar
+         a.mar add b.sp c.mar   ; load data at the relative address and pass the new address to mar
+         rd                     ; read the data in mdr
+         a.mdr c.ac br@fetch    ; copy the value in mdr to accumulator, fetch a new instruction
+
+L0101:   ; str =========================================
+         a.ir and b.m12 c.mar    ; extract the address, place into mar
+         a.mar add b.sp c.mar    ; load data at the relative address and pass the new address to mar
+         a.ac c.mdr              ; copy the value in accumulator to mdr
+         wr br@fetch             ; start write operation and fetch a new instruction
+
+L0110:   ; addr ========================================
+         a.ir and b.m12 c.mar            ; extract the address, place into mar
+         a.mar add b.sp c.mar            ; load data at the relative address and pass the new address to mar
+         rd                              ; read the data in mdr
+         a.ac add b.mdr c.ac br@fetch    ; add values in mdr and accumulator, store in accumulator, fetch a new instruction
+
+L0111:   ; subr ========================================
+         a.ir and b.m12 c.mar            ; extract the address, place into mar
+         a.mar add b.sp c.mar            ; load data at the relative address and pass the new address to mar
+         rd                              ; read the data in mdr
+         a.ac sub b.mdr c.ac br@fetch    ; subtract values in mdr and accumulator, store in accumulator, fetch a new instruction
+
+L1000:   ; ldi =========================================
+         a.ir and b.m12 c.ac br@fetch    ; load accumulator with zero extended data from the machine instruction, fetch a new instruction
+
+L1001:   ; asp =========================================
+         a.ir sext b.m12 c.mar           ; extract the address, sign extend to 16 bits and place into mar
+         a.sp add b.mdr c.sp br@fetch    ; resize stack by adding data from mdr to stack pointer, fetch a new instruction
+
+L1010:   ; call ========================================
+         a.sp sub b.1 c.sp                  ; decrement sp
+         a.sp c.mar                         ; load mar from sp
+         a.pc c.mdr                         ; load pc with return address in pc
+         a.ir and b.m12 c.pc wr br@fetch    ; load pc with instruction following the call, write, branch to subroutine
+
+L1011:   ; ret =========================================
+         a.sp c.mar                    ; store sp in mar
+         rd                            ; start read operation
+         a.sp add b.1 c.sp             ; increment sp
+         a.mdr c.pc br@fetch           ; move return address from mdr to pc, fetch a new instruction
+
+L1100:   ; br ==========================================
+         a.ir and b.m12 c.pc br@fetch    ; branch to a new address, fetch new instruction
+
+L1101:   ; brn =========================================
+         a.ac add b.0 !neg@fetch         ; start fetch of next instruction if ac is not negative
+         a.ir and b.m12 c.pc br@fetch    ; branch to address in branch on negative (brn) instruction
+
+L1110:   ; brz =========================================
+         a.ac add b.0 !zer@fetch         ; start fetch of next instruction if ac != 0
+         a.ir and b.m12 c.pc br@fetch    ; branch to address in branch on zero (brz) instruction
+
+L1111:   ; trap ========================================
+         br@fetch    ; only microcode needed for opcode 1111
+
+
+
+;==========================================================================================================================
+
+
+
+;        Stack Instruction Set                   s.sm
+
+         ;===================================================
+         ; Fetch machine instruction, increment pc
+fetch:   a.pc c.mar 
+         a.pc add b.1 c.pc rd
+
+         ;===================================================
+         ; Decode instruction
+         
+         ; How to proceed:
+         ; 1) Analyze the first bit by adding 0 to it. If the n (negative) flag is 1, set the 1st bit to 1 and jump to L1; else execute the next instruction;
+         ; 2) Shift left logically by 1 bit the next bit in the opcode from the instruction register;
+         ; 3) Analyze the shifted out bit. If it's 1, set the bit to 1 and jump to the next label; else execute the next instruction;
+         ; 4) Repeat steps 2 and 3 until the analysis of all 4 bits is complete.
+         ; We are done: all 4 bits are decoded, we can now execute the appropriate machine instruction.
+
+         a.mdr add b.0 c.ir neg@L1
+L0:      a.ir sll b.1 c.dc neg@L01
+L00:     a.dc sll b.1 c.dc neg@L001
+L000:    a.dc sll b.1 c.dc neg@L0001
+         br@L0000
+
+L1:      a.ir sll b.1 c.dc neg@L11
+L10:     a.dc sll b.1 c.dc neg@L101
+L100:    a.dc sll b.1 c.dc neg@L1001
+         br@L1000
+
+L01:     a.dc sll b.1 c.dc neg@L011
+L010:    a.dc sll b.1 c.dc neg@L0101
+         br@L0100
+
+L11:     a.dc sll b.1 c.dc neg@L111
+L110:    a.dc sll b.1 c.dc neg@L1101
+         br@L1100
+
+L001:    a.dc sll b.1 c.dc neg@L0011
+         br@L0010
+
+L011:    a.dc sll b.1 c.dc neg@L0111
+         br@L0110
+
+L101:    a.dc sll b.1 c.dc neg@L1011
+         br@L1010
+
+L111:    a.dc sll b.1 c.dc neg@L1111
+         br@L1110
+
+         ;===================================================
+         ; Interpret machine instruction
+         
+L0000:   ; p (push) ================================================
+         a.ir and b.m12 c.mar    ; extract data from instruction, prepare to read from memory
+         rd                      ; read data from memory address
+         a.sp sub b.1 c.sp       ; decrement stack pointer
+         a.sp c.mar              ; prepare to write to the top of stack
+         wr                      ; push immediate value on top of stack
+         a.mdr c.mar br@fetch    ; write data in mdr to the address in mar
+
+L0001:   ; pi (push immediate) ===============================================
+         a.ir and b.m12 c.mar    ; extract immediate value (or address if using labels) from machine instruction
+         a.mar c.mdr             ; store immediate value/address in mdr for now
+         a.sp sub b.1 c.sp       ; decrement stack pointer
+         a.sp c.mar              ; prepare to write to the top of stack
+         wr                      ; start write operation
+         a.mdr c.mar br@fetch    ; push immediate value/address onto the stack
+          
+L0010:   ; pr (push relative) ===============================================
+         a.ir sext b.m12 c.mar    ; sign extend address
+         a.mar c.mdr              ; store address in mdr
+         a.fp add b.mdr c.mdr     ; update mdr considering frame pointer's location
+         a.mdr c.mar              ; update top of stack
+         rd                       ; read data
+         a.sp sub b.1 c.sp        ; decrement sp
+         a.sp c.mar               ; instructions 7-8: read top of stack and write to it
+         wr br@fetch
+
+L0011:   ; cora (convert relative address) =============================================
+         a.ir sext b.m12 c.mar    ; sign extend address in machine instruction
+         a.mar c.mdr              ; store relative address in mdr
+         a.fp add b.mdr c.mdr     ; convert to absolute address by adding frame pointer and address in mdr
+         a.mdr c.mar              ; update address
+         a.sp sub b.1 c.sp        ; decrement sp
+         a.sp c.mar               ; instructions 6-7: read top of stack and write data at absolute address to it
+         wr br@fetch
+
+L0100:   ; stav (store value at address) =============================================
+         a.sp c.mar              ; read value on top of stack
+         a.sp add b.1 c.sp rd    ; pop stack into mdr and save in temp
+         a.mdr c.temp
+         a.sp c.mar              ; read address on top of stack
+         a.sp add b.1 c.sp rd 
+         a.mdr c.mar
+         a.temp c.mdr            ; store value at address specified in mdr and write data to it
+         wr br@fetch
+         
+L0101:   ; dp (dereference pointer) ===============================================
+         a.sp c.mar    ; read address on top of stack
+         rd
+         a.mdr c.mar   ; read value the pointer points to
+         rd
+         a.sp c.mar    ; dereference pointer and replace it with the value it points to onto stack
+         wr br@fetch
+
+L0110:   ; asp (add to stack pointer) ==============================================
+         a.ir sext b.m12 c.mar           ; sign extend data from machine instruction
+         a.mar c.mdr                     ; place value inside mdr
+         a.sp add b.mdr c.sp br@fetch    ; add value (positive or negative) to sp
+          
+L0111:   ; add ==============================================
+         a.sp c.mar                ; read the address on top of stack into mar
+         a.sp add b.1 c.sp rd      ; read the 1st operand
+         a.mdr c.temp              ; save it in temp
+         a.sp c.mar                ; read the 2nd operand
+         rd
+         a.mdr add b.temp c.mdr    ; add two operands, save into mdr, and rewrite the top of stack
+         wr br@fetch
+
+L1000:   ; sub ==============================================
+         a.sp c.mar                ; read the address on top of stack into mar
+         a.sp add b.1 c.sp rd      ; read the 1st operand
+         a.mdr c.temp              ; save it in temp
+         a.sp c.mar                ; read the 2nd operand
+         rd
+         a.mdr sub b.temp c.mdr    ; sub two operands, save into mdr, and rewrite the top of stack
+         wr br@fetch
+
+L1001:   ; call =============================================
+         a.sp sub b.1 c.sp                  ; decrement sp
+         a.sp c.mar                         ; read top of stack
+         a.pc c.mdr                         ; save next machine instruction's address to mdr
+         a.ir and b.m12 c.pc wr br@fetch    ; write the subroutine's start address into pc and branch to it
+
+L1010:   ; ret, esba (establish base address), reba (restore base address), mhw (hardware multiplication), mmc (microcode multiplication)=========================
+         a.ir and b.m12 zer@ret
+         a.ir srl b.1 c.dc cy@esba
+         a.dc srl b.1 c.dc cy@reba
+         a.dc srl b.1 c.dc cy@mhw
+         a.dc srl b.1 c.dc cy@mmc
+
+ret:     a.sp c.mar             ; read the top of stack
+         rd
+         a.sp add b.1 c.sp      ; pop return address on top of stack into pc
+         a.mdr c.pc br@fetch
+
+esba:    a.sp sub b.1 c.sp     ; decrement sp
+         a.sp c.mar            ; read top of stack
+         a.fp c.mdr            ; save the caller's frame pointer and write to memory
+         wr
+         a.sp c.fp br@fetch    ; caller's fp is now on top of stack
+
+reba:    a.fp c.sp               ; copy frame pointer to sp
+         a.sp c.mar              ; copy the calling module's address into memory
+         a.sp add b.1 c.sp rd    ; pop the address off the stack
+         a.mdr c.fp br@fetch     ; return to the calling module's frame pointer
+
+mhw:     a.sp c.mar                ; get address of top of stack into mar
+         a.sp add b.1 c.sp rd      ; read top of stack and increment sp
+         a.mdr c.temp              ; copy in temp
+         a.sp c.mar                ; prepare to read 2nd operand, don't increment sp
+         rd                        ; read 2nd operand into mdr
+         a.mdr mul b.temp c.mdr    ; multiply, put sum in mdr
+         wr br@fetch               ; replace top of stack with sum in mdr
+
+mmc:     a.sp c.mar                       ; pop stack into temp (temp is multiplicand)
+         a.sp add b.1 c.sp rd
+         a.mdr c.temp
+         a.sp c.mar                       ; pop stack into mdr (mdr is multiplier)
+         rd
+         a.0 c.ac                         ; set ac to 0
+loop:    a.mdr add b.0 zer@done           ; if mdr = 0 branch to done
+         a.mdr and b.1 zer@skip           ; if rightmost bit of mdr = 0 branch to skip
+         a.temp add b.ac c.ac             ; add temp to ac
+skip:    a.mdr srl b.1 c.mdr              ; shift mdr right logically one position
+         a.temp sll b.1 c.temp br@loop    ; shift temp left logically one position
+done:    a.ac c.mdr                       ; push ac (the product) to mdr
+         wr br@fetch                      ; replace top of stack with value in ac
+
+L1011:   ; brp (branch on positive) ==============================================
+         a.sp c.mar                      ; read top of stack and save address to mdr
+         rd
+         a.mar c.mdr
+         a.sp add b.1 c.sp               ; increment sp
+         a.mdr add b.0 !neg@fetch        ; if mdr >= 0 branch to fetch, else branch to specified address
+         a.ir and b.m12 c.pc br@fetch
+ 
+L1100:   ; br (unconditional branch) ===============================================
+         a.ir and b.m12 c.pc br@fetch    ; extract branch-to address and load pc with it
+
+L1101:   ; brn (branch on negative) ==============================================
+         a.sp c.mar                      ; read top of stack and save address to mdr
+         rd
+         a.mar c.mdr
+         a.sp add b.1 c.sp               ; increment sp
+         a.mdr add b.0 !neg@fetch        ; if mdr >= 0 branch to fetch, else branch to specified address
+         a.ir and b.m12 c.pc br@fetch
+
+L1110:   ; brz (branch on zero) ==============================================
+         a.sp c.mar                      ; pop top of stack and read its value
+         a.sp add b.1 c.sp rd
+         a.mdr add b.0 !zer@fetch        ; if mdr is not 0 branch to fetch, else branch to address
+         a.ir and b.m12 c.pc br@fetch
+   
+L1111:   ; trap (I/O instructions + halt instruction) =============================================
+         br@fetch    ; the simulator handles all trap instructions
+
+
+
+;==========================================================================================================================
+
+
+
+;        Register Instruction Set                   r.sm
+
+         ;==============================================
+         ; Fetch machine instruction, increment pc
+fetch:   a.pc c.mar
+         a.pc add b.1 c.pc rd
+
+         ;==============================================
+         ; Decode instruction
+
+   		 ; How to proceed:
+         ; 1) Analyze the first bit by adding 0 to it. If the n (negative) flag is 1, set the 1st bit to 1 and jump to L1; else execute the next instruction;
+         ; 2) Shift left logically by 1 bit the next bit in the opcode from the instruction register;
+         ; 3) Analyze the shifted out bit. If it's 1, set the bit to 1 and jump to the next label; else execute the next instruction;
+         ; 4) Repeat steps 2 and 3 until the analysis of all 4 bits is complete.
+         ; We are done: all 4 bits are decoded, we can now execute the appropriate machine instruction.
+
+         a.mdr add b.0 c.ir neg@L1
+L0:      a.ir sll b.1 c.dc neg@L01
+L00:     a.dc sll b.1 c.dc neg@L001
+L000:    a.dc sll b.1 c.dc neg@L0001
+         br@L0000
+
+L1:      a.ir sll b.1 c.dc neg@L11
+L10:     a.dc sll b.1 c.dc neg@L101
+L100:    a.dc sll b.1 c.dc neg@L1001
+         br@L1000
+
+L01:     a.dc sll b.1 c.dc neg@L011
+L010:    a.dc sll b.1 c.dc neg@L0101
+         br@L0100
+
+L11:     a.dc sll b.1 c.dc neg@L111
+L110:    a.dc sll b.1 c.dc neg@L1101
+         br@L1100
+
+L001:    a.dc sll b.1 c.dc neg@L0011
+         br@L0010
+
+L011:    a.dc sll b.1 c.dc neg@L0111
+         br@L0110
+
+L101:    a.dc sll b.1 c.dc neg@L1011
+         br@L1010
+
+L111:    a.dc sll b.1 c.dc neg@L1111
+         br@L1110
+
+         ;==============================================
+         ; Interpret machine instruction
+
+L0000:   ; br
+         a.ir sext b.m9 c.temp				; sign extend the original address in the instruction register, then store it in the temp register
+		 									; using the dc (decoder) register lets us process the address and determine if need to branch without changing the original address, stored in temp
+	     									; the unaffected original address will be used to process other instructions as usual
+         a.dc sll b.1 c.dc neg@code1
+code0:   a.dc sll b.1 c.dc neg@code01
+code00:  a.dc sll b.1 c.dc neg@code001
+         br@code000
+code1:   a.dc sll b.1 c.dc neg@code11
+code10:  a.dc sll b.1 c.dc neg@code101
+         br@code100
+code01:  a.dc sll b.1 c.dc neg@code011
+         br@code010
+code11:  a.dc sll b.1 c.dc neg@code111
+         br@code110
+
+   		 ; Branch types by code
+	  	 ; 000 - branch on zero, branch on equal. ALU z (zero) flag is set to 1 (the ac (accumulator) register has a value of 0 or is equal to a compared value)
+	 	 ; 001 - branch on nonzero, branch on not equal. ALU z flag is set to 0 (the ac register has a value greater than 0 or if the compared value differs)
+		 ; 010 - branch on negative. ALU n (negative) flag is set to 1 (the ac register has a negative value)
+   		 ; 011 - branch on positive. ALU n flag is set to 0 (the ac register has a positive value)
+	  	 ; 100 - branch on less than in signed comparison. The n flag isn't equal to the v (signed overflow) flag (the value in r1 (register 1) is less than the r2 (register 2) value). Used in signed comparison
+	 	 ; 101 - branch on greater. The n flag is equal to the v flag and the z flag is set to 0 (the value in r1 (register 1) is greater than or equal to the r2 (register 2) value). If the n flag is not equal to the v flag, an underflow (if n is set to 1) or overflow (if v is set to 1) has been detected. Used in signed comparison
+		 ; 110 - branch on carry/below. The c (carry/borrow) flag is set to 1 (the r1 register has a smaller value than the r2 register) detecting an underflow/overflow. Used in unsigned comparison
+   		 ; 111 - unconditional branch (branch always)
+
+code000: u !zer@fetch
+         a.temp add b.pc c.pc br@fetch
+code001: u zer@fetch
+         a.temp add b.pc c.pc br@fetch
+code010: u !neg@fetch
+         a.temp add b.pc c.pc br@fetch
+code011: u zer@fetch
+         u neg@fetch
+         a.temp add b.pc c.pc br@fetch
+code100: u ge@fetch
+         a.temp add b.pc c.pc br@fetch
+code101: u le@fetch
+         a.temp add b.pc c.pc br@fetch
+code110: u !cy@fetch
+         a.temp add b.pc c.pc br@fetch
+code111: a.temp add b.pc c.pc br@fetch
+
+L0001:   ; add =========================================
+         a.ir and b.bit5 !zer@add1
+add0:    amux add bmux cmux u br@fetch
+add1:    a.ir sext b.m5 c.temp
+         amux add b.temp cmux u br@fetch
+
+L0010:   ; ld ==========================================
+         a.ir sext b.m9 c.temp
+         a.temp add b.pc c.mar
+         rd
+         a.mdr cmux br@fetch
+
+L0011:   ; st ==========================================
+         a.ir sext b.m9 c.temp
+         a.temp add b.pc c.mar
+         a.ir srl b.3 c.ir
+         amux c.mdr
+         wr br@fetch
+
+L0100:   ; bl ==========================================
+         a.ir and b.m5 zer@blr
+bl:      a.ir sext b.m11 c.temp
+         a.pc c.lr
+         a.temp add b.pc c.pc br@fetch
+blr:     a.ir sext b.m6 c.temp
+         a.pc c.lr
+         amux add b.temp c.pc br@fetch
+
+L0101:   ; and =========================================
+         a.ir and b.bit5 !zer@and1
+and0:    amux and bmux cmux u br@fetch
+and1:    a.ir sext b.m5 c.temp
+         amux and b.temp cmux u br@fetch
+
+L0110:   ; ldr =========================================
+         a.ir sext b.m6 c.temp
+         amux add b.temp c.mar
+         rd
+         a.mdr cmux br@fetch
+
+L0111:   ; str =========================================
+         a.ir sext b.m6 c.temp
+         amux add b.temp c.mar
+         a.ir srl b.3 c.ir
+         amux c.mdr
+         wr br@fetch
+
+L1000:   ; cmp =========================================
+         a.ir and b.bit5 !zer@cmp1
+cmp0:    amux sub bmux u br@fetch
+cmp1:    a.ir sext b.m5 c.temp u
+         amux sub b.temp u br@fetch
+
+L1001:   ; not =========================================
+         amux not amux cmux u br@fetch
+
+L1010:   ; push, pop, srl, sra, sll ====================
+         a.ir srl b.bit5 c.dc zer@push
+         a.dc srl b.1 c.dc cy@pop
+         a.dc srl b.1 c.dc cy@srl
+         a.dc srl b.1 c.dc cy@sra
+         a.dc srl b.1 c.dc cy@sll
+         
+push:    a.ir srl b.3 c.ir
+         a.sp sub b.1 c.sp
+         a.sp c.mar
+         amux c.mdr
+         wr br@fetch
+         
+pop:     a.sp c.mar
+         a.sp add b.1 c.sp rd
+         a.mdr cmux br@fetch
+
+srl:     a.ir srl b.3 c.ir
+         amux srl b.1 c.temp u
+         a.ir sll b.3 c.ir
+         a.temp cmux br@fetch
+
+sra:     a.ir srl b.3 c.ir
+         amux sra b.1 c.temp u
+         a.ir sll b.3 c.ir
+         a.temp cmux br@fetch
+
+sll:     a.ir srl b.3 c.ir
+         amux sll b.1 c.temp u
+         a.ir sll b.3 c.ir
+         a.temp cmux br@fetch
+
+L1011:   ; sub =========================================
+         a.ir and b.bit5 !zer@sub1
+sub0:    amux sub bmux cmux u br@fetch
+sub1:    a.ir sext b.m5 c.temp
+         amux sub b.temp cmux u br@fetch
+
+L1100:   ; jmp, ret ====================================
+         a.ir and b.bit5 !zer@ret
+jmp:     a.ir sext b.m6 c.temp
+         amux add b.temp c.pc br@fetch
+ret:     a.lr c.pc br@fetch
+
+L1101:   ; mvi =========================================
+         a.ir sext b.m9 cmux br@fetch
+
+L1110:   ; lea =========================================
+         a.ir sext b.m9 c.temp
+         a.pc add b.temp cmux br@fetch
+
+L1111:   ; trap ========================================
+         br@fetch
+
+
+
+;==========================================================================================================================
+
+
+
+;        optimal Instruction Set               o.sm
+
+         ;=======================================================
+         ; Fetch machine instruction, increment pc
+fetch:   a.pc c.mar 
+         a.pc add b.1 c.pc rd
+
+         ;=======================================================
+         ; Decode instruction
+
+   		 ; How to proceed:
+         ; 1) Analyze the first bit by adding 0 to it. If the n (negative) flag is 1, set the 1st bit to 1 and jump to L1; else execute the next instruction;
+         ; 2) Shift left logically by 1 bit the next bit in the opcode from the instruction register;
+         ; 3) Analyze the shifted out bit. If it's 1, set the bit to 1 and jump to the next label; else execute the next instruction;
+         ; 4) Repeat steps 2 and 3 until the analysis of all 4 bits is complete.
+         ; We are done: all 4 bits are decoded, we can now execute the appropriate machine instruction.
+
+         a.mdr add b.0 c.ir neg@L1
+L0:      a.ir sll b.1 c.dc neg@L01
+L00:     a.dc sll b.1 c.dc neg@L001
+L000:    a.dc sll b.1 c.dc neg@L0001
+         br@L0000
+
+L1:      a.ir sll b.1 c.dc neg@L11
+L10:     a.dc sll b.1 c.dc neg@L101
+L100:    a.dc sll b.1 c.dc neg@L1001
+         br@L1000
+
+L01:     a.dc sll b.1 c.dc neg@L011
+L010:    a.dc sll b.1 c.dc neg@L0101
+         br@L0100
+
+L11:     a.dc sll b.1 c.dc neg@L111
+L110:    a.dc sll b.1 c.dc neg@L1101
+         br@L1100
+
+L001:    a.dc sll b.1 c.dc neg@L0011
+         br@L0010
+
+L011:    a.dc sll b.1 c.dc neg@L0111
+         br@L0110
+
+L101:    a.dc sll b.1 c.dc neg@L1011
+         br@L1010
+
+L111:    a.dc sll b.1 c.dc neg@L1111
+         br@L1110
+
+         ;=======================================================
+         ; Interpret machine instruction
+
+   		 ; Branch instructions
+         
+L0000:   ; br
+         a.ir sext b.m9 c.temp			; sign extend the address in the instruction register, then store it in the temp register
+		 								; using the dc (decoder) register lets us process the address and determine if need to branch without changing the original address
+	     								; the original address will be used to process other instructions as usual
+         a.dc sll b.1 c.dc neg@code1
+code0:   a.dc sll b.1 c.dc neg@code01
+code00:  a.dc sll b.1 c.dc neg@code001
+         br@code000
+code1:   a.dc sll b.1 c.dc neg@code11
+code10:  a.dc sll b.1 c.dc neg@code101
+         br@code100
+code01:  a.dc sll b.1 c.dc neg@code011
+         br@code010
+code11:  a.dc sll b.1 c.dc neg@code111
+         br@code110
+
+code000: u !zer@fetch
+         a.temp add b.pc c.pc br@fetch
+code001: u zer@fetch
+         a.temp add b.pc c.pc br@fetch
+code010: u !neg@fetch
+         a.temp add b.pc c.pc br@fetch
+code011: u zer@fetch
+         u neg@fetch
+         a.temp add b.pc c.pc br@fetch
+code100: u ge@fetch 
+         a.temp add b.pc c.pc br@fetch
+code101: u le@fetch 
+         a.temp add b.pc c.pc br@fetch
+code110: u !cy@fetch
+         a.temp add b.pc c.pc br@fetch
+code111: a.temp add b.pc c.pc br@fetch
+
+L0001:   ; add =========================================
+         a.ir and b.bit5 !zer@add1
+add0:    amux add bmux cmux u br@fetch
+add1:    a.ir sext b.m5 c.temp
+         amux add b.temp cmux u br@fetch
+
+L0010:   ; ld ==========================================
+         a.ir sext b.m9 c.temp
+         a.temp add b.pc c.mar
+         rd
+         a.mdr cmux br@fetch
+
+L0011:   ; st ==========================================
+         a.ir sext b.m9 c.temp
+         a.temp add b.pc c.mar
+         a.ir srl b.3 c.ir
+         amux c.mdr
+         wr br@fetch
+
+L0100:   ; bl, blr ==========================================
+         a.ir and b.m5 zer@blr
+bl:      a.ir sext b.m11 c.temp
+         a.pc c.lr
+         a.temp add b.pc c.pc br@fetch
+blr:     a.ir sext b.m6 c.temp
+         a.pc c.lr
+         amux add b.temp c.pc br@fetch
+
+L0101:   ; and =========================================
+         a.ir and b.bit5 !zer@and1
+and0:    amux and bmux cmux br@fetch
+and1:    a.ir sext b.m5 c.temp u
+         amux and b.temp cmux br@fetch
+
+L0110:   ; ldr =========================================
+         a.ir sext b.m6 c.temp
+         amux add b.temp c.mar
+         rd
+         a.mdr cmux br@fetch
+
+L0111:   ; str =========================================
+         a.ir sext b.m6 c.temp
+         amux add b.temp c.mar
+         a.ir srl b.3 c.ir
+         amux c.mdr
+         wr br@fetch
+
+L1000:   ; cmp =========================================
+         a.ir and b.bit5 !zer@cmp1
+cmp0:    amux sub bmux u br@fetch
+cmp1:    a.ir sext b.m5 c.temp
+         amux sub b.temp u br@fetch
+
+L1001:   ; not =========================================
+         amux not amux cmux u br@fetch
+
+L1010: ; push/pop/srl/sra/sll/rol/ror/mul/div/rem/or/xor/mvr/sext
+         a.ir and b.m5 c.dc zer@push
+         a.dc sub b.1 c.dc zer@pop
+         a.dc sub b.1 c.dc zer@srl
+         a.dc sub b.1 c.dc zer@sra
+         a.dc sub b.1 c.dc zer@sll
+         a.dc sub b.1 c.dc zer@rol
+         a.dc sub b.1 c.dc zer@ror
+         a.dc sub b.1 c.dc zer@mul
+         a.dc sub b.1 c.dc zer@div
+         a.dc sub b.1 c.dc zer@rem
+         a.dc sub b.1 c.dc zer@or
+         a.dc sub b.1 c.dc zer@xor
+         a.dc sub b.1 c.dc zer@mvr
+         a.dc sub b.1 c.dc zer@sext
+         br@fetch
+
+push:    a.ir srl b.3 c.ir
+         a.sp sub b.1 c.sp
+         a.sp c.mar
+         amux c.mdr
+         wr br@fetch
+         
+pop:     a.sp c.mar
+         a.sp add b.1 c.sp rd
+         a.mdr cmux br@fetch
+
+srl:     a.ir srl b.5 c.temp
+         a.ir srl b.3 c.ir
+         amux srl b.temp c.temp u
+         a.ir sll b.3 c.ir
+         a.temp cmux br@fetch
+
+sra:     a.ir srl b.5 c.temp
+         a.ir srl b.3 c.ir
+         amux sra b.temp c.temp u
+         a.ir sll b.3 c.ir
+         a.temp cmux br@fetch
+
+sll:     a.ir srl b.5 c.temp
+         a.ir srl b.3 c.ir
+         amux sll b.temp c.temp u
+         a.ir sll b.3 c.ir
+         a.temp cmux br@fetch
+         
+rol:     a.ir srl b.5 c.temp
+         a.ir srl b.3 c.ir
+         amux rol b.temp c.temp u
+         a.ir sll b.3 c.ir
+         a.temp cmux br@fetch
+
+ror:     a.ir srl b.5 c.temp
+         a.ir srl b.3 c.ir
+         amux ror b.temp c.temp u
+         a.ir sll b.3 c.ir
+         a.temp cmux br@fetch
+
+mul:     amux c.temp
+         a.ir srl b.3 c.ir
+         amux mul b.temp c.temp
+         a.ir sll b.3 c.ir
+         a.temp cmux br@fetch
+ 
+div:     amux c.temp
+         a.ir srl b.3 c.ir
+         amux div b.temp c.temp
+         a.ir sll b.3 c.ir
+         a.temp cmux br@fetch
+
+rem:     amux c.temp
+         a.ir srl b.3 c.ir
+         amux rem b.temp c.temp
+         a.ir sll b.3 c.ir
+         a.temp cmux br@fetch
+
+or:      amux c.temp
+         a.ir srl b.3 c.ir
+         amux or b.temp c.temp
+         a.ir sll b.3 c.ir
+         a.temp cmux br@fetch
+
+xor:     amux c.temp
+         a.ir srl b.3 c.ir
+         amux xor b.temp c.temp
+         a.ir sll b.3 c.ir
+         a.temp cmux br@fetch
+
+mvr:     amux add b.0 cmux br@fetch
+
+sext:    amux c.temp
+         a.ir srl b.3 c.ir
+         amux sext b.temp c.temp
+         a.ir sll b.3 c.ir
+         a.temp cmux br@fetch
+
+L1011:   ; sub =========================================
+         a.ir and b.bit5 !zer@sub1
+sub0:    amux sub bmux cmux u br@fetch
+sub1:    a.ir sext b.m5 c.temp
+         amux sub b.temp cmux u br@fetch
+
+L1100:   ; jmp, ret ====================================
+         a.ir and b.bit5 !zer@ret
+jmp:     a.ir sext b.m6 c.temp
+         amux add b.temp c.pc br@fetch
+ret:     a.lr c.pc br@fetch
+
+L1101:   ; mvi =========================================
+         a.ir sext b.m9 cmux br@fetch
+
+L1110:   ; lea =========================================
+         a.ir sext b.m9 c.temp
+         a.pc add b.temp cmux br@fetch
+
+L1111:   ; trap ========================================
+         br@fetch
