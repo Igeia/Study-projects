@@ -355,12 +355,12 @@ fetch:   a.pc c.mar
          ;==============================================
          ; Decode instruction
 
-   		 ; How to proceed:
-         ; 1) Analyze the first bit by adding 0 to it. If the n (negative) flag is 1, set the 1st bit to 1 and jump to L1; else execute the next instruction;
-         ; 2) Shift left logically by 1 bit the next bit in the opcode from the instruction register;
-         ; 3) Analyze the shifted out bit. If it's 1, set the bit to 1 and jump to the next label; else execute the next instruction;
-         ; 4) Repeat steps 2 and 3 until the analysis of all 4 bits is complete.
-         ; We are done: all 4 bits are decoded, we can now execute the appropriate machine instruction.
+; How to proceed:
+; 1) Analyze the first bit by adding 0 to it. If the n (negative) flag is 1, set the 1st bit to 1 and jump to L1; else execute the next instruction;
+; 2) Shift left logically by 1 bit the next bit in the opcode from the instruction register;
+; 3) Analyze the shifted out bit. If it's 1, set the bit to 1 and jump to the next label; else execute the next instruction;
+; 4) Repeat steps 2 and 3 until the analysis of all 4 bits is complete.
+; We are done: all 4 bits are decoded, we can now execute the appropriate machine instruction.
 
          a.mdr add b.0 c.ir neg@L1
 L0:      a.ir sll b.1 c.dc neg@L01
@@ -397,9 +397,10 @@ L111:    a.dc sll b.1 c.dc neg@L1111
          ; Interpret machine instruction
 
 L0000:   ; br
-         a.ir sext b.m9 c.temp				; sign extend the original address in the instruction register, then store it in the temp register
-		 									; using the dc (decoder) register lets us process the address and determine if need to branch without changing the original address, stored in temp
-	     									; the unaffected original address will be used to process other instructions as usual
+         a.ir sext b.m9 c.temp		; Get relative address, store in temp for future uses
+
+	 	 ; using the dc (decoder) register lets us process the address and determine if need to branch without changing the original address, stored in temp
+	 	 ; the unaffected original address will be used to process other instructions as usual
          a.dc sll b.1 c.dc neg@code1
 code0:   a.dc sll b.1 c.dc neg@code01
 code00:  a.dc sll b.1 c.dc neg@code001
@@ -412,15 +413,15 @@ code01:  a.dc sll b.1 c.dc neg@code011
 code11:  a.dc sll b.1 c.dc neg@code111
          br@code110
 
-   		 ; Branch types by code
-	  	 ; 000 - branch on zero, branch on equal. ALU z (zero) flag is set to 1 (the ac (accumulator) register has a value of 0 or is equal to a compared value)
-	 	 ; 001 - branch on nonzero, branch on not equal. ALU z flag is set to 0 (the ac register has a value greater than 0 or if the compared value differs)
-		 ; 010 - branch on negative. ALU n (negative) flag is set to 1 (the ac register has a negative value)
-   		 ; 011 - branch on positive. ALU n flag is set to 0 (the ac register has a positive value)
-	  	 ; 100 - branch on less than in signed comparison. The n flag isn't equal to the v (signed overflow) flag (the value in r1 (register 1) is less than the r2 (register 2) value). Used in signed comparison
-	 	 ; 101 - branch on greater. The n flag is equal to the v flag and the z flag is set to 0 (the value in r1 (register 1) is greater than or equal to the r2 (register 2) value). If the n flag is not equal to the v flag, an underflow (if n is set to 1) or overflow (if v is set to 1) has been detected. Used in signed comparison
-		 ; 110 - branch on carry/below. The c (carry/borrow) flag is set to 1 (the r1 register has a smaller value than the r2 register) detecting an underflow/overflow. Used in unsigned comparison
-   		 ; 111 - unconditional branch (branch always)
+; Branch types by code
+; 000 - branch on zero, branch on equal. ALU z (zero) flag is set to 1 (the ac (accumulator) register has a value of 0 or is equal to a compared value)
+; 001 - branch on nonzero, branch on not equal. ALU z flag is set to 0 (the ac register has a value greater than 0 or if the compared value differs)
+; 010 - branch on negative. ALU n (negative) flag is set to 1 (the ac register has a negative value)
+; 011 - branch on positive. ALU n flag is set to 0 (the ac register has a positive value)
+; 100 - branch on less than in signed comparison. The n flag isn't equal to the v (signed overflow) flag (the value in r1 (register 1) is less than the r2 (register 2) value). Used in signed comparison
+; 101 - branch on greater. The n flag is equal to the v flag and the z flag is set to 0 (the value in r1 (register 1) is greater than or equal to the r2 (register 2) value). If the n flag is not equal to the v flag, an underflow (if n is set to 1) or overflow (if v is set to 1) has been detected. Used in signed comparison
+; 110 - branch on carry/below. The c (carry/borrow) flag is set to 1 (the r1 register has a smaller value than the r2 register) detecting an underflow/overflow. Used in unsigned comparison
+; 111 - unconditional branch (branch always)
 
 code000: u !zer@fetch
          a.temp add b.pc c.pc br@fetch
@@ -439,115 +440,117 @@ code110: u !cy@fetch
          a.temp add b.pc c.pc br@fetch
 code111: a.temp add b.pc c.pc br@fetch
 
+; NB: Amux, Bmux, and Cmux are all registers connected to the ALU
+
 L0001:   ; add =========================================
-         a.ir and b.bit5 !zer@add1
-add0:    amux add bmux cmux u br@fetch
-add1:    a.ir sext b.m5 c.temp
-         amux add b.temp cmux u br@fetch
+         a.ir and b.bit5 !zer@add1			; Determine which type of add
+add0:    amux add bmux cmux u br@fetch		; Add two registers
+add1:    a.ir sext b.m5 c.temp				; Extract immediate value
+         amux add b.temp cmux u br@fetch	; Add register and immediate value
 
-L0010:   ; ld ==========================================
-         a.ir sext b.m9 c.temp
-         a.temp add b.pc c.mar
-         rd
-         a.mdr cmux br@fetch
+L0010:   ; ld (load) ==========================================
+         a.ir sext b.m9 c.temp	; Get relative address
+         a.temp add b.pc c.mar	; Convert to absolute address
+         rd						; Read operand from memory
+         a.mdr cmux br@fetch	; Load destination register from operand in mdr
 
-L0011:   ; st ==========================================
-         a.ir sext b.m9 c.temp
-         a.temp add b.pc c.mar
-         a.ir srl b.3 c.ir
-         amux c.mdr
+L0011:   ; st (store) ==========================================
+         a.ir sext b.m9 c.temp	; Get relative address
+         a.temp add b.pc c.mar	; Convert to absolute address
+         a.ir srl b.3 c.ir		; Shift the address 3 times to change from A field to B field,
+         amux c.mdr				; Store the register value in mdr and write to memory
          wr br@fetch
 
-L0100:   ; bl ==========================================
-         a.ir and b.m5 zer@blr
-bl:      a.ir sext b.m11 c.temp
-         a.pc c.lr
-         a.temp add b.pc c.pc br@fetch
-blr:     a.ir sext b.m6 c.temp
-         a.pc c.lr
-         amux add b.temp c.pc br@fetch
+L0100:   ; bl (branch and link) ==========================================
+         a.ir and b.m5 zer@blr			; Determine which type of branch and link to use
+bl:      a.ir sext b.m11 c.temp			; Extract the current subroutine's address
+         a.pc c.lr						; Save the return address to the link register
+         a.temp add b.pc c.pc br@fetch	; Replace the current address in pc with a function's address to jump to
+blr:     a.ir sext b.m6 c.temp			; Extract the current subroutine's address
+         a.pc c.lr						; Save the return address to the link register
+         amux add b.temp c.pc br@fetch	; Branch to the absolute address in the register combined with an offset (if specified)
 
 L0101:   ; and =========================================
-         a.ir and b.bit5 !zer@and1
-and0:    amux and bmux cmux u br@fetch
-and1:    a.ir sext b.m5 c.temp
-         amux and b.temp cmux u br@fetch
+         a.ir and b.bit5 !zer@and1			; Determine which type of "AND"
+and0:    amux and bmux cmux u br@fetch		; Perform a logical "AND" on two registers
+and1:    a.ir sext b.m5 c.temp				; Get the immediate value
+         amux and b.temp cmux u br@fetch	; Perform a logical "AND" on a register and the immediate value
 
-L0110:   ; ldr =========================================
-         a.ir sext b.m6 c.temp
-         amux add b.temp c.mar
-         rd
-         a.mdr cmux br@fetch
+L0110:   ; ldr (load relative) =========================================
+         a.ir sext b.m6 c.temp	; Extract the address
+         amux add b.temp c.mar	; Add the address from the source register and the offset (can be negative, positive, or 0)
+         rd						; Perform read from memory
+         a.mdr cmux br@fetch	; Load the destination register
 
-L0111:   ; str =========================================
-         a.ir sext b.m6 c.temp
-         amux add b.temp c.mar
-         a.ir srl b.3 c.ir
-         amux c.mdr
-         wr br@fetch
+L0111:   ; str (store relative) =========================================
+         a.ir sext b.m6 c.temp	; Extract the address
+         amux add b.temp c.mar	; Add the address from the source register and the offset (can be negative, positive, or 0)
+         a.ir srl b.3 c.ir		; Shift the instruction right 3 times to get to the A field
+         amux c.mdr				; Store a value to mdr
+         wr br@fetch			; Write the value to memory
 
-L1000:   ; cmp =========================================
-         a.ir and b.bit5 !zer@cmp1
-cmp0:    amux sub bmux u br@fetch
-cmp1:    a.ir sext b.m5 c.temp u
-         amux sub b.temp u br@fetch
+L1000:   ; cmp (compare) =========================================
+         a.ir and b.bit5 !zer@cmp1		; Determine which type of compare
+cmp0:    amux sub bmux u br@fetch		; Subtract the r1 register from the r2 register and set the user flag(s)
+cmp1:    a.ir sext b.m5 c.temp u		; Extract the immediate value
+         amux sub b.temp u br@fetch		; Subtract the register from the immediate value and set the user flag(s)
 
 L1001:   ; not =========================================
-         amux not amux cmux u br@fetch
+         amux not amux cmux u br@fetch	; Perform a logical "NOT" on the register
 
-L1010:   ; push, pop, srl, sra, sll ====================
-         a.ir srl b.bit5 c.dc zer@push
+L1010:   ; push, pop, srl (shift right logical), sra (shift right arithmetic), sll (shift left arithmetic) ====================
+         a.ir srl b.bit5 c.dc zer@push	; Shift the instruction's bit 5 to determine the operation type
          a.dc srl b.1 c.dc cy@pop
          a.dc srl b.1 c.dc cy@srl
          a.dc srl b.1 c.dc cy@sra
          a.dc srl b.1 c.dc cy@sll
          
-push:    a.ir srl b.3 c.ir
-         a.sp sub b.1 c.sp
-         a.sp c.mar
-         amux c.mdr
-         wr br@fetch
+push:    a.ir srl b.3 c.ir	; Shift the instruction 3 times to the right to get the B field
+         a.sp sub b.1 c.sp	; Reserve space for data
+         a.sp c.mar			; Place the stack top address in mar
+         amux c.mdr			; Place the desired value in mdr
+         wr br@fetch		; Write the value in mdr to the reserved space on the stack
          
-pop:     a.sp c.mar
-         a.sp add b.1 c.sp rd
-         a.mdr cmux br@fetch
+pop:     a.sp c.mar				; Place the stack top address in mar
+         a.sp add b.1 c.sp rd	; Read the value on top of stack in memory and remove it from stack
+         a.mdr cmux br@fetch	; Forward the saved value from mdr to a specified register
 
-srl:     a.ir srl b.3 c.ir
-         amux srl b.1 c.temp u
-         a.ir sll b.3 c.ir
-         a.temp cmux br@fetch
+srl:     a.ir srl b.3 c.ir		; Shift the instruction 3 times to the right to get the B field
+         amux srl b.1 c.temp u	; Shift right logically the value in the register once, set the user flag(s)
+         a.ir sll b.3 c.ir		; Shift the instruction left 3 times to return to the A field
+         a.temp cmux br@fetch	; Place the shifted value in the specified register
 
-sra:     a.ir srl b.3 c.ir
-         amux sra b.1 c.temp u
-         a.ir sll b.3 c.ir
-         a.temp cmux br@fetch
+sra:     a.ir srl b.3 c.ir		; Shift the instruction 3 times to the right to get the B field
+         amux sra b.1 c.temp u	; Shift right arithmetically the value in the register once, set the user flag(s)
+         a.ir sll b.3 c.ir		; Shift the instruction left 3 times to return to the A field
+         a.temp cmux br@fetch	; Place the shifted value in the specified register
 
-sll:     a.ir srl b.3 c.ir
-         amux sll b.1 c.temp u
-         a.ir sll b.3 c.ir
-         a.temp cmux br@fetch
+sll:     a.ir srl b.3 c.ir		; Shift the instruction 3 times to the right to get the B field
+         amux sll b.1 c.temp u	; Shift left logically the value in the register once, set the user flag(s)
+         a.ir sll b.3 c.ir		; Shift the instruction left 3 times to return to the A field
+         a.temp cmux br@fetch	; Place the shifted value in the specified register
 
-L1011:   ; sub =========================================
-         a.ir and b.bit5 !zer@sub1
-sub0:    amux sub bmux cmux u br@fetch
-sub1:    a.ir sext b.m5 c.temp
-         amux sub b.temp cmux u br@fetch
+L1011:   ; sub (subtract) =========================================
+         a.ir and b.bit5 !zer@sub1			; Determine which type of sub
+sub0:    amux sub bmux cmux u br@fetch		; Subtract two registers
+sub1:    a.ir sext b.m5 c.temp				; Get the immediate value
+         amux sub b.temp cmux u br@fetch	; Subtract a register from the immediate value and set the user flags
 
-L1100:   ; jmp, ret ====================================
-         a.ir and b.bit5 !zer@ret
-jmp:     a.ir sext b.m6 c.temp
-         amux add b.temp c.pc br@fetch
-ret:     a.lr c.pc br@fetch
+L1100:   ; jmp (jump), ret (return) ====================================
+         a.ir and b.bit5 !zer@ret		; Determine if we need to jump or return from a subroutine
+jmp:     a.ir sext b.m6 c.temp			; Get the address
+         amux add b.temp c.pc br@fetch	; Branch to the absolute address in the specified register combined with an offset (if specified)
+ret:     a.lr c.pc br@fetch				; Place the return address from the link register to the program counter
 
-L1101:   ; mvi =========================================
-         a.ir sext b.m9 cmux br@fetch
+L1101:   ; mvi (move immediate) =========================================
+         a.ir sext b.m9 cmux br@fetch	; Place the extracted immediate value in the specified register
 
-L1110:   ; lea =========================================
-         a.ir sext b.m9 c.temp
-         a.pc add b.temp cmux br@fetch
+L1110:   ; lea (load effective address) =========================================
+         a.ir sext b.m9 c.temp			; Extract the relative address
+         a.pc add b.temp cmux br@fetch	; Store the absolute address in the specified register
 
-L1111:   ; trap ========================================
-         br@fetch
+L1111:   ; trap (I/O instructions + HALT) ========================================
+         br@fetch	; Branch unconditionally
 
 
 
