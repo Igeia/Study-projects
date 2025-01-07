@@ -185,89 +185,89 @@ L111:    a.dc sll b.1 c.dc neg@L1111
          ; Interpret machine instruction
          
 L0000:   ; p (push) ================================================
-         a.ir and b.m12 c.mar    ; extract data from instruction, prepare to read from memory
-         rd                      ; read data from memory address
-         a.sp sub b.1 c.sp       ; decrement stack pointer
-         a.sp c.mar              ; prepare to write to the top of stack
-         wr                      ; push immediate value on top of stack
-         a.mdr c.mar br@fetch    ; write data in mdr to the address in mar
+         a.ir and b.m12 c.mar    ; Get the relative address
+         rd                      ; Read the data at the address
+         a.sp sub b.1 c.sp       ; Reserve space for data
+         a.sp c.mar              ; Send the stack top's address to mar
+         wr                      ; Write the data to memory
+         a.mdr c.mar br@fetch    ; Push the value on top of stack
 
 L0001:   ; pi (push immediate) ===============================================
-         a.ir and b.m12 c.mar    ; extract immediate value (or address if using labels) from machine instruction
-         a.mar c.mdr             ; store immediate value/address in mdr for now
-         a.sp sub b.1 c.sp       ; decrement stack pointer
-         a.sp c.mar              ; prepare to write to the top of stack
-         wr                      ; start write operation
-         a.mdr c.mar br@fetch    ; push immediate value/address onto the stack
+         a.ir and b.m12 c.mar    ; Get the immediate value inside the instruction
+         a.mar c.mdr             ; Place the value in mdr
+         a.sp sub b.1 c.sp       ; Reserve space for data
+         a.sp c.mar              ; Send the stack top's address to mar
+         wr                      ; Write the data to memory
+         a.mdr c.mar br@fetch    ; Push immediate value/address onto the stack
           
 L0010:   ; pr (push relative) ===============================================
-         a.ir sext b.m12 c.mar    ; sign extend address
-         a.mar c.mdr              ; store address in mdr
-         a.fp add b.mdr c.mdr     ; update mdr considering frame pointer's location
-         a.mdr c.mar              ; update top of stack
-         rd                       ; read data
-         a.sp sub b.1 c.sp        ; decrement sp
-         a.sp c.mar               ; instructions 7-8: read top of stack and write to it
-         wr br@fetch
+         a.ir sext b.m12 c.mar    ; Get the relative address
+         a.mar c.mdr              ; Store the address in mdr
+         a.fp add b.mdr c.mdr     ; Update the address in mdr so it has the location relative to the frame pointer
+         a.mdr c.mar              ; Send the updated address to mar
+         rd                       ; Read the data
+         a.sp sub b.1 c.sp        ; Reserve space for data
+         a.sp c.mar               ; Get the top of stack
+         wr br@fetch			  ; Write data to the reserved space
 
 L0011:   ; cora (convert relative address) =============================================
-         a.ir sext b.m12 c.mar    ; sign extend address in machine instruction
-         a.mar c.mdr              ; store relative address in mdr
-         a.fp add b.mdr c.mdr     ; convert to absolute address by adding frame pointer and address in mdr
-         a.mdr c.mar              ; update address
-         a.sp sub b.1 c.sp        ; decrement sp
-         a.sp c.mar               ; instructions 6-7: read top of stack and write data at absolute address to it
-         wr br@fetch
+         a.ir sext b.m12 c.mar    ; Get the relative address
+         a.mar c.mdr              ; Store the relative address in mdr
+         a.fp add b.mdr c.mdr     ; Convert to absolute address by adding frame pointer and address in mdr
+         a.mdr c.mar              ; Place the absolute address in mar, this will get us the data the absolute address contains
+         a.sp sub b.1 c.sp        ; Reserve space for data
+         a.sp c.mar               ; Read the top of stack
+         wr br@fetch			  ; Write the data to memory
 
 L0100:   ; stav (store value at address) =============================================
-         a.sp c.mar              ; read value on top of stack
-         a.sp add b.1 c.sp rd    ; pop stack into mdr and save in temp
-         a.mdr c.temp
-         a.sp c.mar              ; read address on top of stack
-         a.sp add b.1 c.sp rd 
-         a.mdr c.mar
-         a.temp c.mdr            ; store value at address specified in mdr and write data to it
-         wr br@fetch
+         a.sp c.mar              ; Read the value on top of stack
+         a.sp add b.1 c.sp rd    ; Pop the top of stack and read the data into mdr for safekeeping
+         a.mdr c.temp			 ; Save the value into temp
+         a.sp c.mar              ; Get the top of stack's address
+         a.sp add b.1 c.sp rd 	 ; Pop the top of stack again and read the address into mdr
+         a.mdr c.mar			 ; Place the address into mar
+         a.temp c.mdr            ; Move the value to store into mdr
+         wr br@fetch			 ; Write the data at the specified memory location
          
 L0101:   ; dp (dereference pointer) ===============================================
-         a.sp c.mar    ; read address on top of stack
-         rd
-         a.mdr c.mar   ; read value the pointer points to
-         rd
-         a.sp c.mar    ; dereference pointer and replace it with the value it points to onto stack
-         wr br@fetch
+         a.sp c.mar		; Place the pointer's address into mar
+         rd				; Get the address the pointer references
+         a.mdr c.mar	; Place the pointee's address into mar
+         rd				; Read the pointee's data
+         a.sp c.mar		; Get the top of stack's address
+         wr br@fetch	; Rewrite the pointer with the data it references
 
 L0110:   ; asp (add to stack pointer) ==============================================
-         a.ir sext b.m12 c.mar           ; sign extend data from machine instruction
-         a.mar c.mdr                     ; place value inside mdr
-         a.sp add b.mdr c.sp br@fetch    ; add value (positive or negative) to sp
+         a.ir sext b.m12 c.mar           ; Get the whole instruction
+         a.mar c.mdr                     ; Get the immediate value
+         a.sp add b.mdr c.sp br@fetch    ; Reserve (if the value is negative) or return (if the value is positive) space on the stack
           
 L0111:   ; add ==============================================
-         a.sp c.mar                ; read the address on top of stack into mar
-         a.sp add b.1 c.sp rd      ; read the 1st operand
-         a.mdr c.temp              ; save it in temp
-         a.sp c.mar                ; read the 2nd operand
-         rd
-         a.mdr add b.temp c.mdr    ; add two operands, save into mdr, and rewrite the top of stack
-         wr br@fetch
+         a.sp c.mar                 ; Get the top of stack's address
+         a.sp add b.1 c.sp rd       ; Read the first operand and pop the stack
+         a.mdr c.temp               ; Save the first operand
+         a.sp c.mar                 ; Get the top of stack's address
+         rd							; Read the second operand
+         a.mdr add b.temp c.mdr		; Add two operands
+         wr br@fetch				; Rewrite the top of stack with a new value
 
-L1000:   ; sub ==============================================
-         a.sp c.mar                ; read the address on top of stack into mar
-         a.sp add b.1 c.sp rd      ; read the 1st operand
-         a.mdr c.temp              ; save it in temp
-         a.sp c.mar                ; read the 2nd operand
-         rd
-         a.mdr sub b.temp c.mdr    ; sub two operands, save into mdr, and rewrite the top of stack
-         wr br@fetch
+L1000:   ; sub (subtract) ==============================================
+         a.sp c.mar                 ; Get the top of stack's address
+         a.sp add b.1 c.sp rd       ; Read the first operand and pop the stack
+         a.mdr c.temp               ; Save the first operand
+         a.sp c.mar                 ; Get the top of stack's address
+         rd							; Read the second operand
+         a.mdr sub b.temp c.mdr		; Subtract two operands
+         wr br@fetch				; Rewrite the top of stack with a new value
 
 L1001:   ; call =============================================
-         a.sp sub b.1 c.sp                  ; decrement sp
-         a.sp c.mar                         ; read top of stack
-         a.pc c.mdr                         ; save next machine instruction's address to mdr
-         a.ir and b.m12 c.pc wr br@fetch    ; write the subroutine's start address into pc and branch to it
+         a.sp sub b.1 c.sp                  ; Reserve space for a value
+         a.sp c.mar                         ; Get the top of stack's address
+         a.pc c.mdr                         ; Save the return address
+         a.ir and b.m12 c.pc wr br@fetch    ; Branch to the subroutine's starting point using its address
 
 L1010:   ; ret, esba (establish base address), reba (restore base address), mhw (hardware multiplication), mmc (microcode multiplication)=========================
-         a.ir and b.m12 zer@ret
+         a.ir and b.m12 zer@ret		; Determine which operation to perform
          a.ir srl b.1 c.dc cy@esba
          a.dc srl b.1 c.dc cy@reba
          a.dc srl b.1 c.dc cy@mhw
