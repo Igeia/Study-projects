@@ -50,79 +50,79 @@ L111:    a.dc sll b.1 c.dc neg@L1111
          ;==============================================
          ; Interpret machine instruction
 
-L0000:   ; ld ==========================================
-         a.ir and b.m12 c.mar    ; extract the address, place into mar
-         rd                      ; read the data in mdr
-         a.mdr c.ac br@fetch     ; copy the data from mdr to accumulator, fetch a new instruction
+L0000:   ; ld (load) ==========================================
+         a.ir and b.m12 c.mar    ; Extract the address, place into mar
+         rd                      ; Read the data in mdr
+         a.mdr c.ac br@fetch     ; Copy the data from mdr to accumulator, fetch a new instruction
 
-L0001:   ; st ==========================================
-         a.ir and b.m12 c.mar    ; extract the address, place into mar
-         a.ac c.mdr              ; copy the value in accumulator to mdr
-         wr br@fetch             ; write the data to the specified address, fetch a new instruction
+L0001:   ; st (store) ==========================================
+         a.ir and b.m12 c.mar    ; Extract the address, place into mar
+         a.ac c.mdr              ; Copy the value in accumulator to mdr
+         wr br@fetch             ; Write the data to the specified address, fetch a new instruction
 
 L0010:   ; add =========================================
-         a.ir and b.m12 c.mar            ; extract the address, place into mar
-         rd                              ; read the data in mdr
-         a.ac add b.mdr c.ac br@fetch    ; add values in mdr and accumulator, store in accumulator, fetch a new instruction
+         a.ir and b.m12 c.mar            ; Extract the address, place into mar
+         rd                              ; Read the data in mdr
+         a.ac add b.mdr c.ac br@fetch    ; Add values in mdr and accumulator, store in accumulator, fetch a new instruction
 
-L0011:   ; sub =========================================
-         a.ir and b.m12 c.mar            ; extract the address, place into mar
-         rd                              ; read the data in mdr
-         a.ac sub b.mdr c.ac br@fetch    ; subtract values in mdr and accumulator, store in accumulator, fetch a new instruction
+L0011:   ; sub (subtract) =========================================
+         a.ir and b.m12 c.mar            ; Extract the address, place into mar
+         rd                              ; Read the data in mdr
+         a.ac sub b.mdr c.ac br@fetch    ; Subtract values in mdr and accumulator, store in accumulator, fetch a new instruction
 
-L0100:   ; ldr =========================================
-         a.ir and b.m12 c.mar   ; extract the address, place into mar
-         a.mar add b.sp c.mar   ; load data at the relative address and pass the new address to mar
-         rd                     ; read the data in mdr
-         a.mdr c.ac br@fetch    ; copy the value in mdr to accumulator, fetch a new instruction
+L0100:   ; ldr (load relative) =========================================
+         a.ir and b.m12 c.mar   ; Extract the address, place into mar
+         a.mar add b.sp c.mar   ; Load data at the relative address and pass the new address to mar
+         rd                     ; Read the data in mdr
+         a.mdr c.ac br@fetch    ; Copy the value in mdr to accumulator, fetch a new instruction
 
-L0101:   ; str =========================================
-         a.ir and b.m12 c.mar    ; extract the address, place into mar
-         a.mar add b.sp c.mar    ; load data at the relative address and pass the new address to mar
-         a.ac c.mdr              ; copy the value in accumulator to mdr
-         wr br@fetch             ; start write operation and fetch a new instruction
+L0101:   ; str (store relative) =========================================
+         a.ir and b.m12 c.mar    ; Extract the address, place into mar
+         a.mar add b.sp c.mar    ; Load data at the relative address and pass the new address to mar
+         a.ac c.mdr              ; Copy the value in accumulator to mdr
+         wr br@fetch             ; Write the value to memory and fetch a new instruction
 
-L0110:   ; addr ========================================
-         a.ir and b.m12 c.mar            ; extract the address, place into mar
-         a.mar add b.sp c.mar            ; load data at the relative address and pass the new address to mar
-         rd                              ; read the data in mdr
-         a.ac add b.mdr c.ac br@fetch    ; add values in mdr and accumulator, store in accumulator, fetch a new instruction
+L0110:   ; addr (add relative) ========================================
+         a.ir and b.m12 c.mar            ; Extract the address, place into mar
+         a.mar add b.sp c.mar            ; Load data at the relative address and pass the new address to mar
+         rd                              ; Read the data in mdr
+         a.ac add b.mdr c.ac br@fetch    ; Add values in mdr and accumulator, store in accumulator, fetch a new instruction
 
-L0111:   ; subr ========================================
-         a.ir and b.m12 c.mar            ; extract the address, place into mar
-         a.mar add b.sp c.mar            ; load data at the relative address and pass the new address to mar
-         rd                              ; read the data in mdr
-         a.ac sub b.mdr c.ac br@fetch    ; subtract values in mdr and accumulator, store in accumulator, fetch a new instruction
+L0111:   ; subr (subtract relative) ========================================
+         a.ir and b.m12 c.mar            ; Extract the address, place into mar
+         a.mar add b.sp c.mar            ; Load data at the relative address and pass the new address to mar
+         rd                              ; Read the data in mdr
+         a.ac sub b.mdr c.ac br@fetch    ; Subtract values in mdr and accumulator, store in accumulator, fetch a new instruction
 
-L1000:   ; ldi =========================================
-         a.ir and b.m12 c.ac br@fetch    ; load accumulator with zero extended data from the machine instruction, fetch a new instruction
+L1000:   ; ldi (load immediate) =========================================
+         a.ir and b.m12 c.ac br@fetch    ; Load accumulator with zero extended data from the machine instruction, fetch a new instruction
 
 L1001:   ; asp =========================================
-         a.ir sext b.m12 c.mar           ; extract the address, sign extend to 16 bits and place into mar
-         a.sp add b.mdr c.sp br@fetch    ; resize stack by adding data from mdr to stack pointer, fetch a new instruction
+         a.ir sext b.m12 c.mar           ; Extract the address, load into mar
+         a.sp add b.mdr c.sp br@fetch    ; Resize stack by adding data from mdr to stack pointer, fetch a new instruction
 
 L1010:   ; call ========================================
-         a.sp sub b.1 c.sp                  ; decrement sp
-         a.sp c.mar                         ; load mar from sp
-         a.pc c.mdr                         ; load pc with return address in pc
-         a.ir and b.m12 c.pc wr br@fetch    ; load pc with instruction following the call, write, branch to subroutine
+         a.sp sub b.1 c.sp                  ; Decrement sp
+         a.sp c.mar                         ; Load mar from sp
+         a.pc c.mdr                         ; Load pc with return address in pc
+         a.ir and b.m12 c.pc wr br@fetch    ; Load pc with instruction following the call, write, branch to subroutine
 
-L1011:   ; ret =========================================
-         a.sp c.mar                    ; store sp in mar
-         rd                            ; start read operation
-         a.sp add b.1 c.sp             ; increment sp
-         a.mdr c.pc br@fetch           ; move return address from mdr to pc, fetch a new instruction
+L1011:   ; ret (return) =========================================
+         a.sp c.mar                    ; Store sp in mar
+         rd                            ; Start read operation
+         a.sp add b.1 c.sp             ; Increment sp
+         a.mdr c.pc br@fetch           ; Move return address from mdr to pc, fetch a new instruction
 
-L1100:   ; br ==========================================
-         a.ir and b.m12 c.pc br@fetch    ; branch to a new address, fetch new instruction
+L1100:   ; br (branch unconditionally) ==========================================
+         a.ir and b.m12 c.pc br@fetch    ; Branch to a new address, fetch new instruction
 
-L1101:   ; brn =========================================
-         a.ac add b.0 !neg@fetch         ; start fetch of next instruction if ac is not negative
-         a.ir and b.m12 c.pc br@fetch    ; branch to address in branch on negative (brn) instruction
+L1101:   ; brn (branch on negative) =========================================
+         a.ac add b.0 !neg@fetch         ; Fetch a new instruction if ac is not negative
+         a.ir and b.m12 c.pc br@fetch    ; Branch to the specified address if the data is less than 0
 
 L1110:   ; brz =========================================
-         a.ac add b.0 !zer@fetch         ; start fetch of next instruction if ac != 0
-         a.ir and b.m12 c.pc br@fetch    ; branch to address in branch on zero (brz) instruction
+         a.ac add b.0 !zer@fetch         ; Fetch a new instruction if ac is not 0
+         a.ir and b.m12 c.pc br@fetch    ; Branch to the specified address if the data is equal to 0
 
 L1111:   ; trap ========================================
          br@fetch    ; The simulator handles all trap instructions. Wait until the data has been entered, then fetch a new instruction. If HALT is used, terminate unconditionally
