@@ -9,12 +9,12 @@ fetch:   a.pc c.mar
          ;==============================================
          ; Decode instruction
 		 
-         ; How to proceed:
-         ; 1) Analyze the first bit by adding 0 to it. If the n (negative) flag is 1, set the 1st bit to 1 and jump to L1; else execute the next instruction;
-         ; 2) Shift left logically by 1 bit the next bit in the opcode from the instruction register;
-         ; 3) Analyze the shifted out bit. If it's 1, set the bit to 1 and jump to the next label; else execute the next instruction;
-         ; 4) Repeat steps 2 and 3 until the analysis of all 4 bits is complete.
-         ; We are done: all 4 bits are decoded, we can now execute the necessary machine instruction.
+; How to proceed:
+; 1) Analyze the first bit by adding 0 to it. If the n (negative) flag is 1, set the 1st bit to 1 and jump to L1; else execute the next instruction;
+; 2) Shift left logically by 1 bit the next bit in the opcode from the instruction register;
+; 3) Analyze the shifted out bit. If it's 1, set the bit to 1 and jump to the next label; else execute the next instruction;
+; 4) Repeat steps 2 and 3 until the analysis of all 4 bits is complete.
+; We are done: all 4 bits are decoded, we can now execute the necessary machine instruction.
 
          a.mdr add b.0 c.ir neg@L1
 L0:      a.ir sll b.1 c.dc neg@L01
