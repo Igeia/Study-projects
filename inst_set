@@ -208,7 +208,7 @@ L0010:   ; pr (push relative) ===============================================
          rd                       ; Read the data
          a.sp sub b.1 c.sp        ; Reserve space for data
          a.sp c.mar               ; Get the top of stack
-         wr br@fetch			  ; Write data to the reserved space
+         wr br@fetch		  ; Write data to the reserved space
 
 L0011:   ; cora (convert relative address) =============================================
          a.ir sext b.m12 c.mar    ; Get the relative address
@@ -217,24 +217,24 @@ L0011:   ; cora (convert relative address) =====================================
          a.mdr c.mar              ; Place the absolute address in mar, this will get us the data the absolute address contains
          a.sp sub b.1 c.sp        ; Reserve space for data
          a.sp c.mar               ; Read the top of stack
-         wr br@fetch			  ; Write the data to memory
+         wr br@fetch		  ; Write the data to memory
 
 L0100:   ; stav (store value at address) =============================================
          a.sp c.mar             ; Read the value on top of stack
          a.sp add b.1 c.sp rd   ; Pop the top of stack and read the data into mdr for safekeeping
-         a.mdr c.temp			; Save the value into temp
+         a.mdr c.temp		; Save the value into temp
          a.sp c.mar             ; Get the top of stack's address
          a.sp add b.1 c.sp rd 	; Pop the top of stack again and read the address into mdr
-         a.mdr c.mar			; Place the address into mar
+         a.mdr c.mar		; Place the address into mar
          a.temp c.mdr           ; Move the value to store into mdr
-         wr br@fetch			; Write the data at the specified memory location
+         wr br@fetch		; Write the data at the specified memory location
          
 L0101:   ; dp (dereference pointer) ===============================================
-         a.sp c.mar		; Place the pointer's address into mar
-         rd				; Get the address the pointer references
+         a.sp c.mar	; Place the pointer's address into mar
+         rd		; Get the address the pointer references
          a.mdr c.mar	; Place the pointee's address into mar
-         rd				; Read the pointee's data
-         a.sp c.mar		; Get the top of stack's address
+         rd		; Read the pointee's data
+         a.sp c.mar	; Get the top of stack's address
          wr br@fetch	; Rewrite the pointer with the data it references
 
 L0110:   ; asp (add to stack pointer) ==============================================
@@ -243,22 +243,22 @@ L0110:   ; asp (add to stack pointer) ==========================================
          a.sp add b.mdr c.sp br@fetch    ; Reserve (if the value is negative) or return (if the value is positive) space on the stack
           
 L0111:   ; add ==============================================
-         a.sp c.mar                 ; Get the top of stack's address
-         a.sp add b.1 c.sp rd       ; Read the first operand and pop the stack
-         a.mdr c.temp               ; Save the first operand
-         a.sp c.mar                 ; Get the top of stack's address
-         rd							; Read the second operand
-         a.mdr add b.temp c.mdr		; Add two operands
-         wr br@fetch				; Rewrite the top of stack with a new value
+         a.sp c.mar             ; Get the top of stack's address
+         a.sp add b.1 c.sp rd   ; Read the first operand and pop the stack
+         a.mdr c.temp           ; Save the first operand
+         a.sp c.mar             ; Get the top of stack's address
+         rd			; Read the second operand
+         a.mdr add b.temp c.mdr	; Add two operands
+         wr br@fetch		; Rewrite the top of stack with a new value
 
 L1000:   ; sub (subtract) ==============================================
-         a.sp c.mar                 ; Get the top of stack's address
-         a.sp add b.1 c.sp rd       ; Read the first operand and pop the stack
-         a.mdr c.temp               ; Save the first operand
-         a.sp c.mar                 ; Get the top of stack's address
-         rd							; Read the second operand
-         a.mdr sub b.temp c.mdr		; Subtract two operands
-         wr br@fetch				; Rewrite the top of stack with a new value
+         a.sp c.mar             ; Get the top of stack's address
+         a.sp add b.1 c.sp rd   ; Read the first operand and pop the stack
+         a.mdr c.temp           ; Save the first operand
+         a.sp c.mar             ; Get the top of stack's address
+         rd			; Read the second operand
+         a.mdr sub b.temp c.mdr ; Subtract two operands
+         wr br@fetch		; Rewrite the top of stack with a new value
 
 L1001:   ; call =============================================
          a.sp sub b.1 c.sp                  ; Reserve space for a value
@@ -274,15 +274,15 @@ L1010:   ; ret, esba (establish base address), reba (restore base address), mhw 
          a.dc srl b.1 c.dc cy@mmc
 
 ret:     a.sp c.mar             ; Read the return address on top of the stack
-         rd						; Get the return address
+         rd			; Get the return address
          a.sp add b.1 c.sp      ; Pop return address on top of the stack
          a.mdr c.pc br@fetch	; Replace the address in pc with the return address
 
 esba:    a.sp sub b.1 c.sp     	; Reserve space on the stack
          a.sp c.mar            	; Read top of the stack
          a.fp c.mdr            	; Save the caller's frame pointer
-         wr						; Write the caller's frame pointer into the reserved space
-         a.sp c.fp br@fetch		; Make the stack and frame pointers be at the same memory location
+         wr			; Write the caller's frame pointer into the reserved space
+         a.sp c.fp br@fetch	; Make the stack and frame pointers be at the same memory location
 
 reba:    a.fp c.sp               ; Copy the frame pointer to the stack pointer
          a.sp c.mar              ; Copy the calling module's address into memory
@@ -298,41 +298,41 @@ mhw:     a.sp c.mar                ; Get the top of stack's address
          wr br@fetch               ; Replace the top of stack with the product
 
 mmc:     a.sp c.mar                     ; Get the top of stack address
-         a.sp add b.1 c.sp rd			; Read the first operand and pop it
-         a.mdr c.temp					; Save the value into temp
-         a.sp c.mar						; Get the top of stack address
-         rd								; Get the second operand (mdr is multiplier)
-         a.0 c.ac						; Set the accumulator register to 0
-loop:    a.mdr add b.0 zer@done			; If mdr is zero, branch to "done"
-         a.mdr and b.1 zer@skip			; If the rightmost bit of mdr is 0, branch to "skip"
-         a.temp add b.ac c.ac			; Add two operands
-skip:    a.mdr srl b.1 c.mdr			; Shift the first operand right logically one position
+         a.sp add b.1 c.sp rd		; Read the first operand and pop it
+         a.mdr c.temp			; Save the value into temp
+         a.sp c.mar			; Get the top of stack address
+         rd				; Get the second operand (mdr is multiplier)
+         a.0 c.ac			; Set the accumulator register to 0
+loop:    a.mdr add b.0 zer@done		; If mdr is zero, branch to "done"
+         a.mdr and b.1 zer@skip		; If the rightmost bit of mdr is 0, branch to "skip"
+         a.temp add b.ac c.ac		; Add two operands
+skip:    a.mdr srl b.1 c.mdr		; Shift the first operand right logically one position
          a.temp sll b.1 c.temp br@loop	; Shift the second operand left logically one position
 done:    a.ac c.mdr                     ; Move the value in the accumulator (the product) to mdr
          wr br@fetch                    ; Replace the top of stack value with the value in the accumulator
 
 L1011:   ; brp (branch on positive) ==============================================
-         a.sp c.mar                     	; Get the top of stack's address
-         rd									; Read the value
-         a.mar c.mdr						; Save the branch-to address in mdr to check the condition later
-         a.sp add b.1 c.sp					; Pop the top of stack
-         a.mdr add b.0 !neg@fetch			; Force the check to see if the condition (the value must be greater than 0) is met
-         a.ir and b.m12 c.pc br@fetch		; Branch to the specified address
+         a.sp c.mar                    ; Get the top of stack's address
+         rd			       ; Read the value
+         a.mar c.mdr		       ; Save the branch-to address in mdr to check the condition later
+         a.sp add b.1 c.sp	       ; Pop the top of stack
+         a.mdr add b.0 !neg@fetch      ; Force the check to see if the condition (the value must be greater than 0) is met
+         a.ir and b.m12 c.pc br@fetch  ; Branch to the specified address
  
 L1100:   ; br (unconditional branch) ===============================================
          a.ir and b.m12 c.pc br@fetch    ; Extract the address to branch to and branch to it
 
 L1101:   ; brn (branch on negative) ==============================================
          a.sp c.mar                     	; Get the top of stack's address
-         rd									; Read the value
-         a.mar c.mdr						; Save the branch-to address in mdr to check the condition later
-         a.sp add b.1 c.sp					; Pop the top of stack
-         a.mdr add b.0 !neg@fetch			; Force the check to see if the condition (the value must be negative) is met
+         rd					; Read the value
+         a.mar c.mdr				; Save the branch-to address in mdr to check the condition later
+         a.sp add b.1 c.sp			; Pop the top of stack
+         a.mdr add b.0 !neg@fetch		; Force the check to see if the condition (the value must be negative) is met
          a.ir and b.m12 c.pc br@fetch		; Branch to the specified address
 
 L1110:   ; brz (branch on zero) ==============================================
          a.sp c.mar                     ; Get the top of stack's address
-         a.sp add b.1 c.sp rd			; Read the value on top of stack and pop it
+         a.sp add b.1 c.sp rd		; Read the value on top of stack and pop it
          a.mdr add b.0 !zer@fetch       ; Force the check to see if the condition (the value must be 0) is met
          a.ir and b.m12 c.pc br@fetch	; Branch to the specified address
    
@@ -443,57 +443,57 @@ code111: a.temp add b.pc c.pc br@fetch
 ; NB: Amux, Bmux, and Cmux are all registers connected to the ALU
 
 L0001:   ; add =========================================
-         a.ir and b.bit5 !zer@add1			; Determine which type of add
+         a.ir and b.bit5 !zer@add1		; Determine which type of add
 add0:    amux add bmux cmux u br@fetch		; Add two registers
-add1:    a.ir sext b.m5 c.temp				; Extract immediate value
+add1:    a.ir sext b.m5 c.temp			; Extract immediate value
          amux add b.temp cmux u br@fetch	; Add register and immediate value
 
 L0010:   ; ld (load) ==========================================
          a.ir sext b.m9 c.temp	; Get relative address
          a.temp add b.pc c.mar	; Convert to absolute address
-         rd						; Read operand from memory
+         rd			; Read operand from memory
          a.mdr cmux br@fetch	; Load destination register from operand in mdr
 
 L0011:   ; st (store) ==========================================
          a.ir sext b.m9 c.temp	; Get relative address
          a.temp add b.pc c.mar	; Convert to absolute address
-         a.ir srl b.3 c.ir		; Shift the address 3 times to change from A field to B field,
-         amux c.mdr				; Store the register value in mdr
-         wr br@fetch			; Write the value to memory
+         a.ir srl b.3 c.ir	; Shift the address 3 times to change from A field to B field,
+         amux c.mdr		; Store the register value in mdr
+         wr br@fetch		; Write the value to memory
 
 L0100:   ; bl (branch and link) ==========================================
-         a.ir and b.m5 zer@blr			; Determine which type of branch and link to use
-bl:      a.ir sext b.m11 c.temp			; Extract the current subroutine's address
-         a.pc c.lr						; Save the return address to the link register
+         a.ir and b.m5 zer@blr		; Determine which type of branch and link to use
+bl:      a.ir sext b.m11 c.temp		; Extract the current subroutine's address
+         a.pc c.lr			; Save the return address to the link register
          a.temp add b.pc c.pc br@fetch	; Replace the current address in pc with a function's address to jump to
-blr:     a.ir sext b.m6 c.temp			; Extract the current subroutine's address
-         a.pc c.lr						; Save the return address to the link register
+blr:     a.ir sext b.m6 c.temp		; Extract the current subroutine's address
+         a.pc c.lr			; Save the return address to the link register
          amux add b.temp c.pc br@fetch	; Branch to the absolute address in the register combined with an offset (if specified)
 
 L0101:   ; and =========================================
-         a.ir and b.bit5 !zer@and1			; Determine which type of "AND"
+         a.ir and b.bit5 !zer@and1		; Determine which type of "AND"
 and0:    amux and bmux cmux u br@fetch		; Perform a logical "AND" on two registers
-and1:    a.ir sext b.m5 c.temp				; Get the immediate value
+and1:    a.ir sext b.m5 c.temp			; Get the immediate value
          amux and b.temp cmux u br@fetch	; Perform a logical "AND" on a register and the immediate value
 
 L0110:   ; ldr (load relative) =========================================
          a.ir sext b.m6 c.temp	; Extract the address
          amux add b.temp c.mar	; Add the address from the source register and the offset (can be negative, positive, or 0)
-         rd						; Perform read from memory
+         rd			; Perform read from memory
          a.mdr cmux br@fetch	; Load the destination register
 
 L0111:   ; str (store relative) =========================================
          a.ir sext b.m6 c.temp	; Extract the address
          amux add b.temp c.mar	; Add the address from the source register and the offset (can be negative, positive, or 0)
-         a.ir srl b.3 c.ir		; Shift the instruction right 3 times to get to the A field
-         amux c.mdr				; Store a value to mdr
-         wr br@fetch			; Write the value to memory
+         a.ir srl b.3 c.ir	; Shift the instruction right 3 times to get to the A field
+         amux c.mdr		; Store a value to mdr
+         wr br@fetch		; Write the value to memory
 
 L1000:   ; cmp (compare) =========================================
-         a.ir and b.bit5 !zer@cmp1		; Determine which type of compare
-cmp0:    amux sub bmux u br@fetch		; Subtract the r1 register from the r2 register and set the user flag(s)
-cmp1:    a.ir sext b.m5 c.temp			; Extract the immediate value
-         amux sub b.temp u br@fetch		; Subtract the register from the immediate value and set the user flag(s)
+         a.ir and b.bit5 !zer@cmp1	; Determine which type of compare
+cmp0:    amux sub bmux u br@fetch	; Subtract the r1 register from the r2 register and set the user flag(s)
+cmp1:    a.ir sext b.m5 c.temp		; Extract the immediate value
+         amux sub b.temp u br@fetch	; Subtract the register from the immediate value and set the user flag(s)
 
 L1001:   ; not =========================================
          amux not amux cmux u br@fetch	; Perform a logical "NOT" on the register
@@ -507,46 +507,46 @@ L1010:   ; push, pop, srl (shift right logical), sra (shift right arithmetic), s
          
 push:    a.ir srl b.3 c.ir	; Shift the instruction 3 times to the right to get the B field
          a.sp sub b.1 c.sp	; Reserve space for data
-         a.sp c.mar			; Place the stack top address in mar
-         amux c.mdr			; Place the desired value in mdr
+         a.sp c.mar		; Place the stack top address in mar
+         amux c.mdr		; Place the desired value in mdr
          wr br@fetch		; Write the value in mdr to the reserved space on the stack
          
-pop:     a.sp c.mar				; Place the stack top address in mar
+pop:     a.sp c.mar		; Place the stack top address in mar
          a.sp add b.1 c.sp rd	; Read the value on top of stack in memory and remove it from stack
          a.mdr cmux br@fetch	; Forward the saved value from mdr to a specified register
 
-srl:     a.ir srl b.3 c.ir		; Shift the instruction 3 times to the right to get the B field
+srl:     a.ir srl b.3 c.ir	; Shift the instruction 3 times to the right to get the B field
          amux srl b.1 c.temp u	; Shift right logically the value in the register once, set the user flag(s)
-         a.ir sll b.3 c.ir		; Shift the instruction left 3 times to return to the A field
+         a.ir sll b.3 c.ir	; Shift the instruction left 3 times to return to the A field
          a.temp cmux br@fetch	; Place the shifted value in the specified register
 
-sra:     a.ir srl b.3 c.ir		; Shift the instruction 3 times to the right to get the B field
+sra:     a.ir srl b.3 c.ir	; Shift the instruction 3 times to the right to get the B field
          amux sra b.1 c.temp u	; Shift right arithmetically the value in the register once, set the user flag(s)
-         a.ir sll b.3 c.ir		; Shift the instruction left 3 times to return to the A field
+         a.ir sll b.3 c.ir	; Shift the instruction left 3 times to return to the A field
          a.temp cmux br@fetch	; Place the shifted value in the specified register
 
-sll:     a.ir srl b.3 c.ir		; Shift the instruction 3 times to the right to get the B field
+sll:     a.ir srl b.3 c.ir	; Shift the instruction 3 times to the right to get the B field
          amux sll b.1 c.temp u	; Shift left logically the value in the register once, set the user flag(s)
-         a.ir sll b.3 c.ir		; Shift the instruction left 3 times to return to the A field
+         a.ir sll b.3 c.ir	; Shift the instruction left 3 times to return to the A field
          a.temp cmux br@fetch	; Place the shifted value in the specified register
 
 L1011:   ; sub (subtract) =========================================
-         a.ir and b.bit5 !zer@sub1			; Determine which type of sub
+         a.ir and b.bit5 !zer@sub1		; Determine which type of sub
 sub0:    amux sub bmux cmux u br@fetch		; Subtract two registers
-sub1:    a.ir sext b.m5 c.temp				; Get the immediate value
+sub1:    a.ir sext b.m5 c.temp			; Get the immediate value
          amux sub b.temp cmux u br@fetch	; Subtract a register from the immediate value and set the user flags
 
 L1100:   ; jmp (jump), ret (return) ====================================
-         a.ir and b.bit5 !zer@ret		; Determine if we need to jump or return from a subroutine
-jmp:     a.ir sext b.m6 c.temp			; Get the address
+         a.ir and b.bit5 !zer@ret	; Determine if we need to jump or return from a subroutine
+jmp:     a.ir sext b.m6 c.temp		; Get the address
          amux add b.temp c.pc br@fetch	; Branch to the absolute address in the specified register combined with an offset (if specified)
-ret:     a.lr c.pc br@fetch				; Place the return address from the link register to the program counter
+ret:     a.lr c.pc br@fetch		; Place the return address from the link register to the program counter
 
 L1101:   ; mvi (move immediate) =========================================
          a.ir sext b.m9 cmux br@fetch	; Place the extracted immediate value in the specified register
 
 L1110:   ; lea (load effective address) =========================================
-         a.ir sext b.m9 c.temp			; Extract the relative address
+         a.ir sext b.m9 c.temp		; Extract the relative address
          a.pc add b.temp cmux br@fetch	; Store the absolute address in the specified register
 
 L1111:   ; trap (I/O instructions + HALT) ========================================
@@ -656,57 +656,57 @@ code110: u !cy@fetch
 code111: a.temp add b.pc c.pc br@fetch
 
 L0001:   ; add =========================================
-         a.ir and b.bit5 !zer@add1			; Determine which type of add
+         a.ir and b.bit5 !zer@add1		; Determine which type of add
 add0:    amux add bmux cmux u br@fetch		; Add two registers
-add1:    a.ir sext b.m5 c.temp				; Extract immediate value
+add1:    a.ir sext b.m5 c.temp			; Extract immediate value
          amux add b.temp cmux u br@fetch	; Add register and immediate value
 
 L0010:   ; ld (load) ==========================================
          a.ir sext b.m9 c.temp	; Get relative address
          a.temp add b.pc c.mar	; Convert to absolute address
-         rd						; Read operand from memory
+         rd			; Read operand from memory
          a.mdr cmux br@fetch	; Load destination register from operand in mdr
 
 L0011:   ; st (store) ==========================================
          a.ir sext b.m9 c.temp	; Get relative address
          a.temp add b.pc c.mar	; Convert to absolute address
-         a.ir srl b.3 c.ir		; Shift the register number from C field to A field
-         amux c.mdr				; Store the register value in mdr
-         wr br@fetch			; Write the value to memory
+         a.ir srl b.3 c.ir	; Shift the register number from C field to A field
+         amux c.mdr		; Store the register value in mdr
+         wr br@fetch		; Write the value to memory
 
 L0100:   ; bl (branch and link), blr (branch and link relative) ==========================================
-         a.ir and b.m5 zer@blr			; Determine which type of branch and link to use
-bl:      a.ir sext b.m11 c.temp			; Extract the current subroutine's address
-         a.pc c.lr						; Save the return address to the link register
+         a.ir and b.m5 zer@blr		; Determine which type of branch and link to use
+bl:      a.ir sext b.m11 c.temp		; Extract the current subroutine's address
+         a.pc c.lr			; Save the return address to the link register
          a.temp add b.pc c.pc br@fetch	; Replace the current address in pc with a function's address to jump to
-blr:     a.ir sext b.m6 c.temp			; Extract the current subroutine's address
-         a.pc c.lr						; Save the return address to the link register
+blr:     a.ir sext b.m6 c.temp		; Extract the current subroutine's address
+         a.pc c.lr			; Save the return address to the link register
          amux add b.temp c.pc br@fetch	; Branch to the absolute address in the register combined with an offset (if specified)
 
 L0101:   ; and =========================================
-         a.ir and b.bit5 !zer@and1			; Determine which type of "AND"
+         a.ir and b.bit5 !zer@and1		; Determine which type of "AND"
 and0:    amux and bmux cmux u br@fetch		; Perform a logical "AND" on two registers
-and1:    a.ir sext b.m5 c.temp				; Get the immediate value
+and1:    a.ir sext b.m5 c.temp			; Get the immediate value
          amux and b.temp cmux u br@fetch	; Perform a logical "AND" on a register and the immediate value
 
 L0110:   ; ldr (load relative) =========================================
          a.ir sext b.m6 c.temp	; Extract the address
          amux add b.temp c.mar	; Add the address from the source register and the offset (can be negative, positive, or 0)
-         rd						; Perform read from memory
+         rd			; Perform read from memory
          a.mdr cmux br@fetch	; Load the destination register
 
 L0111:   ; str (store relative) =========================================
          a.ir sext b.m6 c.temp	; Extract the address
          amux add b.temp c.mar	; Add the address from the source register and the offset (can be negative, positive, or 0)
-         a.ir srl b.3 c.ir		; Shift the register number from C field to A field
-         amux c.mdr				; Store a value to mdr
-         wr br@fetch			; Write the value to memory
+         a.ir srl b.3 c.ir	; Shift the register number from C field to A field
+         amux c.mdr		; Store a value to mdr
+         wr br@fetch		; Write the value to memory
 
 L1000:   ; cmp (compare) =========================================
-         a.ir and b.bit5 !zer@cmp1		; Determine which type of compare
-cmp0:    amux sub bmux u br@fetch		; Subtract the r1 register from the r2 register and set the user flag(s)
-cmp1:    a.ir sext b.m5 c.temp			; Extract the immediate value
-         amux sub b.temp u br@fetch		; Subtract the register from the immediate value and set the user flag(s)
+         a.ir and b.bit5 !zer@cmp1	; Determine which type of compare
+cmp0:    amux sub bmux u br@fetch	; Subtract the r1 register from the r2 register and set the user flag(s)
+cmp1:    a.ir sext b.m5 c.temp		; Extract the immediate value
+         amux sub b.temp u br@fetch	; Subtract the register from the immediate value and set the user flag(s)
 
 L1001:   ; not =========================================
          amux not amux cmux u br@fetch ; Perform a logical "NOT" on the register
@@ -730,99 +730,99 @@ L1010: ; push/pop/srl (shift right logical)/sra (shift right arithmetic)/sll (sh
 
 push:    a.ir srl b.3 c.ir	; Shift the register number from C field to A field
          a.sp sub b.1 c.sp	; Reserve space for data
-         a.sp c.mar			; Place the stack top address in mar
-         amux c.mdr			; Place the desired value in mdr
+         a.sp c.mar		; Place the stack top address in mar
+         amux c.mdr		; Place the desired value in mdr
          wr br@fetch		; Write the value in mdr to the reserved space on the stack
          
-pop:     a.sp c.mar				; Place the stack top address in mar
+pop:     a.sp c.mar		; Place the stack top address in mar
          a.sp add b.1 c.sp rd	; Read the value on top of stack in memory and remove it from stack
          a.mdr cmux br@fetch	; Forward the saved value from mdr to a specified register
 
 srl:     a.ir srl b.5 c.temp		; Shift the register number 5 times to the right and save its the shift count (if no shift count is mentioned, it defaults to 1)
-         a.ir srl b.3 c.ir			; Shift the register number from C field to A field
+         a.ir srl b.3 c.ir		; Shift the register number from C field to A field
          amux srl b.temp c.temp u	; Shift right logically the number in the register as much as the shift count is, replace the shift count in temp with a shifted number, set the user flag(s)
-         a.ir sll b.3 c.ir			; Shift the register number back from A field to C field
+         a.ir sll b.3 c.ir		; Shift the register number back from A field to C field
          a.temp cmux br@fetch		; Store the shifted number in the specified register
 
 sra:     a.ir srl b.5 c.temp		; Shift the register number 5 times to the right and save its the shift count (if no shift count is mentioned, it defaults to 1)
-         a.ir srl b.3 c.ir			; Shift the register number from C field to A field
+         a.ir srl b.3 c.ir		; Shift the register number from C field to A field
          amux sra b.temp c.temp u	; Shift arithmetically the number in the register as much as the shift count is, replace the shift count in temp with a shifted number, set the user flag(s)
-         a.ir sll b.3 c.ir			; Shift the register number back from A field to C field
+         a.ir sll b.3 c.ir		; Shift the register number back from A field to C field
          a.temp cmux br@fetch		; Store the shifted number in the specified register
 
 sll:     a.ir srl b.5 c.temp		; Shift the register number 5 times to the right and save its the shift count (if no shift count is mentioned, it defaults to 1)
-         a.ir srl b.3 c.ir			; Shift the register number from C field to A field
+         a.ir srl b.3 c.ir		; Shift the register number from C field to A field
          amux sll b.temp c.temp u	; Shift logically the number in the register as much as the shift count is, replace the shift count in temp with a shifted number, set the user flag(s)
-         a.ir sll b.3 c.ir			; Shift the register number back from A field to C field
+         a.ir sll b.3 c.ir		; Shift the register number back from A field to C field
          a.temp cmux br@fetch		; Store the shifted number in the specified register
          
 rol:     a.ir srl b.5 c.temp		; Shift the register number 5 times to the right and save its the shift count (if no shift count is mentioned, it defaults to 1)
-         a.ir srl b.3 c.ir			; Shift the register number from C field to A field
+         a.ir srl b.3 c.ir		; Shift the register number from C field to A field
          amux rol b.temp c.temp u	; Rotate left the number in the register as much as the shift count is, replace the shift count in temp with a shifted number, set the user flag(s)
-         a.ir sll b.3 c.ir			; Shift the register number back from A field to C field
+         a.ir sll b.3 c.ir		; Shift the register number back from A field to C field
          a.temp cmux br@fetch		; Store the shifted number in the specified register
 
 ror:     a.ir srl b.5 c.temp		; Shift the register number 5 times to the right and save its the shift count (if no shift count is mentioned, it defaults to 1)
-         a.ir srl b.3 c.ir			; Shift the register number from C field to A field
+         a.ir srl b.3 c.ir		; Shift the register number from C field to A field
          amux ror b.temp c.temp u	; Rotate right the number in the register as much as the shift count is, replace the shift count in temp with a shifted number, set the user flag(s)
-         a.ir sll b.3 c.ir			; Shift the register number back from A field to C field
+         a.ir sll b.3 c.ir		; Shift the register number back from A field to C field
          a.temp cmux br@fetch		; Store the shifted number in the specified register
 
-mul:     amux c.temp				; Save the register value in temp
-         a.ir srl b.3 c.ir			; Shift the register number from C field to A field
+mul:     amux c.temp			; Save the register value in temp
+         a.ir srl b.3 c.ir		; Shift the register number from C field to A field
          amux mul b.temp c.temp		; Multiply the saved value and the specified register's value
-         a.ir sll b.3 c.ir			; Shift the register number back from A field to C field
+         a.ir sll b.3 c.ir		; Shift the register number back from A field to C field
          a.temp cmux br@fetch		; Replace the specified register's value with the product
  
-div:     amux c.temp				; Save the register value in temp
-         a.ir srl b.3 c.ir			; Shift the register number from C field to A field
+div:     amux c.temp			; Save the register value in temp
+         a.ir srl b.3 c.ir		; Shift the register number from C field to A field
          amux div b.temp c.temp		; Divide the saved value and the specified register's value
-         a.ir sll b.3 c.ir			; Shift the register number back from A field to C field
+         a.ir sll b.3 c.ir		; Shift the register number back from A field to C field
          a.temp cmux br@fetch		; Replace the specified register's value with the quotient
 
-rem:     amux c.temp				; Save the register value in temp
-         a.ir srl b.3 c.ir			; Shift the register number from C field to A field
+rem:     amux c.temp			; Save the register value in temp
+         a.ir srl b.3 c.ir		; Shift the register number from C field to A field
          amux rem b.temp c.temp		; Divide the saved value and the specified register's value, save the remainder
-         a.ir sll b.3 c.ir			; Shift the register number back from A field to C field
+         a.ir sll b.3 c.ir		; Shift the register number back from A field to C field
          a.temp cmux br@fetch		; Replace the specified register's value with the product
 
-or:      amux c.temp				; Save the register value in temp
-         a.ir srl b.3 c.ir			; Shift the register number from C field to A field
+or:      amux c.temp			; Save the register value in temp
+         a.ir srl b.3 c.ir		; Shift the register number from C field to A field
          amux or b.temp c.temp		; Perform the logical "OR" on the specified register's value and the saved value
-         a.ir sll b.3 c.ir			; Shift the register number back from A field to C field
+         a.ir sll b.3 c.ir		; Shift the register number back from A field to C field
          a.temp cmux br@fetch		; Replace the specified register's value with the "OR"ed value
 
-xor:     amux c.temp				; Save the register value in temp
-         a.ir srl b.3 c.ir			; Shift the register number from C field to A field
+xor:     amux c.temp			; Save the register value in temp
+         a.ir srl b.3 c.ir		; Shift the register number from C field to A field
          amux xor b.temp c.temp		; Perform the logical "XOR" on the specified register's value and the saved value
-         a.ir sll b.3 c.ir			; Shift the register number back from A field to C field
+         a.ir sll b.3 c.ir		; Shift the register number back from A field to C field
          a.temp cmux br@fetch		; Replace the specified register's value with the "XOR"ed value
 
 mvr:     amux add b.0 cmux br@fetch	; Move the value from one register to another
 
-sext:    amux c.temp				; Save the register value in temp
-         a.ir srl b.3 c.ir			; Shift the register number from C field to A field
+sext:    amux c.temp			; Save the register value in temp
+         a.ir srl b.3 c.ir		; Shift the register number from C field to A field
          amux sext b.temp c.temp	; Sign extend the number
-         a.ir sll b.3 c.ir			; Shift the register number back from A field to C field
+         a.ir sll b.3 c.ir		; Shift the register number back from A field to C field
          a.temp cmux br@fetch		; Replace the specified register's value with the product
 
 L1011:   ; sub (subtract) =========================================
-         a.ir and b.bit5 !zer@sub1			; Determine which type of sub
+         a.ir and b.bit5 !zer@sub1		; Determine which type of sub
 sub0:    amux sub bmux cmux u br@fetch		; Subtract two registers
-sub1:    a.ir sext b.m5 c.temp				; Get the immediate value
+sub1:    a.ir sext b.m5 c.temp			; Get the immediate value
          amux sub b.temp cmux u br@fetch	; Subtract a register from the immediate value and set the user flags
 
 L1100:   ; jmp (jump), ret (return) ====================================
          a.ir and b.bit5 !zer@ret		; Determine if we need to jump or return from a subroutine
 jmp:     a.ir sext b.m6 c.temp			; Get the address
-         amux add b.temp c.pc br@fetch	; Branch to the absolute address in the specified register combined with an offset (if specified)
-ret:     a.lr c.pc br@fetch				; Place the return address from the link register to the program counter
+         amux add b.temp c.pc br@fetch		; Branch to the absolute address in the specified register combined with an offset (if specified)
+ret:     a.lr c.pc br@fetch			; Place the return address from the link register to the program counter
 
 L1101:   ; mvi (move immediate) =========================================
          a.ir sext b.m9 cmux br@fetch	; Place the extracted immediate value in the specified register
 
 L1110:   ; lea (load effective address) =========================================
-         a.ir sext b.m9 c.temp			; Extract the relative address
+         a.ir sext b.m9 c.temp		; Extract the relative address
          a.pc add b.temp cmux br@fetch	; Store the absolute address in the specified register
 
 L1111:   ; trap (I/O instructions + HALT) ========================================
