@@ -220,14 +220,14 @@ L0011:   ; cora (convert relative address) =====================================
          wr br@fetch			  ; Write the data to memory
 
 L0100:   ; stav (store value at address) =============================================
-         a.sp c.mar              ; Read the value on top of stack
-         a.sp add b.1 c.sp rd    ; Pop the top of stack and read the data into mdr for safekeeping
-         a.mdr c.temp			 ; Save the value into temp
-         a.sp c.mar              ; Get the top of stack's address
-         a.sp add b.1 c.sp rd 	 ; Pop the top of stack again and read the address into mdr
-         a.mdr c.mar			 ; Place the address into mar
-         a.temp c.mdr            ; Move the value to store into mdr
-         wr br@fetch			 ; Write the data at the specified memory location
+         a.sp c.mar             ; Read the value on top of stack
+         a.sp add b.1 c.sp rd   ; Pop the top of stack and read the data into mdr for safekeeping
+         a.mdr c.temp			; Save the value into temp
+         a.sp c.mar             ; Get the top of stack's address
+         a.sp add b.1 c.sp rd 	; Pop the top of stack again and read the address into mdr
+         a.mdr c.mar			; Place the address into mar
+         a.temp c.mdr           ; Move the value to store into mdr
+         wr br@fetch			; Write the data at the specified memory location
          
 L0101:   ; dp (dereference pointer) ===============================================
          a.sp c.mar		; Place the pointer's address into mar
@@ -273,68 +273,68 @@ L1010:   ; ret, esba (establish base address), reba (restore base address), mhw 
          a.dc srl b.1 c.dc cy@mhw
          a.dc srl b.1 c.dc cy@mmc
 
-ret:     a.sp c.mar             ; read the top of stack
-         rd
-         a.sp add b.1 c.sp      ; pop return address on top of stack into pc
-         a.mdr c.pc br@fetch
+ret:     a.sp c.mar             ; Read the return address on top of the stack
+         rd						; Get the return address
+         a.sp add b.1 c.sp      ; Pop return address on top of the stack
+         a.mdr c.pc br@fetch	; Replace the address in pc with the return address
 
-esba:    a.sp sub b.1 c.sp     ; decrement sp
-         a.sp c.mar            ; read top of stack
-         a.fp c.mdr            ; save the caller's frame pointer and write to memory
-         wr
-         a.sp c.fp br@fetch    ; caller's fp is now on top of stack
+esba:    a.sp sub b.1 c.sp     	; Reserve space on the stack
+         a.sp c.mar            	; Read top of the stack
+         a.fp c.mdr            	; Save the caller's frame pointer
+         wr						; Write the caller's frame pointer into the reserved space
+         a.sp c.fp br@fetch		; Make the stack and frame pointers be at the same memory location
 
-reba:    a.fp c.sp               ; copy frame pointer to sp
-         a.sp c.mar              ; copy the calling module's address into memory
-         a.sp add b.1 c.sp rd    ; pop the address off the stack
-         a.mdr c.fp br@fetch     ; return to the calling module's frame pointer
+reba:    a.fp c.sp               ; Copy the frame pointer to the stack pointer
+         a.sp c.mar              ; Copy the calling module's address into memory
+         a.sp add b.1 c.sp rd    ; Pop the address off the stack and tear down the subroutine's stack frame
+         a.mdr c.fp br@fetch     ; Return to the calling module
 
-mhw:     a.sp c.mar                ; get address of top of stack into mar
-         a.sp add b.1 c.sp rd      ; read top of stack and increment sp
-         a.mdr c.temp              ; copy in temp
-         a.sp c.mar                ; prepare to read 2nd operand, don't increment sp
-         rd                        ; read 2nd operand into mdr
-         a.mdr mul b.temp c.mdr    ; multiply, put sum in mdr
-         wr br@fetch               ; replace top of stack with sum in mdr
+mhw:     a.sp c.mar                ; Get the top of stack's address
+         a.sp add b.1 c.sp rd      ; Read the first operand and pop it
+         a.mdr c.temp              ; Save the value into temp
+         a.sp c.mar                ; Prepare to read the second operand
+         rd                        ; Read the 2nd operand
+         a.mdr mul b.temp c.mdr    ; Multiply two operands
+         wr br@fetch               ; Replace the top of stack with the product
 
-mmc:     a.sp c.mar                       ; pop stack into temp (temp is multiplicand)
-         a.sp add b.1 c.sp rd
-         a.mdr c.temp
-         a.sp c.mar                       ; pop stack into mdr (mdr is multiplier)
-         rd
-         a.0 c.ac                         ; set ac to 0
-loop:    a.mdr add b.0 zer@done           ; if mdr = 0 branch to done
-         a.mdr and b.1 zer@skip           ; if rightmost bit of mdr = 0 branch to skip
-         a.temp add b.ac c.ac             ; add temp to ac
-skip:    a.mdr srl b.1 c.mdr              ; shift mdr right logically one position
-         a.temp sll b.1 c.temp br@loop    ; shift temp left logically one position
-done:    a.ac c.mdr                       ; push ac (the product) to mdr
-         wr br@fetch                      ; replace top of stack with value in ac
+mmc:     a.sp c.mar                     ; Get the top of stack address
+         a.sp add b.1 c.sp rd			; Read the first operand and pop it
+         a.mdr c.temp					; Save the value into temp
+         a.sp c.mar						; Get the top of stack address
+         rd								; Get the second operand (mdr is multiplier)
+         a.0 c.ac						; Set the accumulator register to 0
+loop:    a.mdr add b.0 zer@done			; If mdr is zero, branch to "done"
+         a.mdr and b.1 zer@skip			; If the rightmost bit of mdr is 0, branch to "skip"
+         a.temp add b.ac c.ac			; Add two operands
+skip:    a.mdr srl b.1 c.mdr			; Shift the first operand right logically one position
+         a.temp sll b.1 c.temp br@loop	; Shift the second operand left logically one position
+done:    a.ac c.mdr                     ; Move the value in the accumulator (the product) to mdr
+         wr br@fetch                    ; Replace the top of stack value with the value in the accumulator
 
 L1011:   ; brp (branch on positive) ==============================================
-         a.sp c.mar                      ; read top of stack and save address to mdr
-         rd
-         a.mar c.mdr
-         a.sp add b.1 c.sp               ; increment sp
-         a.mdr add b.0 !neg@fetch        ; if mdr >= 0 branch to fetch, else branch to specified address
-         a.ir and b.m12 c.pc br@fetch
+         a.sp c.mar                     	; Get the top of stack's address
+         rd									; Read the value
+         a.mar c.mdr						; Save the branch-to address in mdr to check the condition later
+         a.sp add b.1 c.sp					; Pop the top of stack
+         a.mdr add b.0 !neg@fetch			; Force the check to see if the condition (the value must be greater than 0) is met
+         a.ir and b.m12 c.pc br@fetch		; Branch to the specified address
  
 L1100:   ; br (unconditional branch) ===============================================
-         a.ir and b.m12 c.pc br@fetch    ; extract branch-to address and load pc with it
+         a.ir and b.m12 c.pc br@fetch    ; Extract the address to branch to and branch to it
 
 L1101:   ; brn (branch on negative) ==============================================
-         a.sp c.mar                      ; read top of stack and save address to mdr
-         rd
-         a.mar c.mdr
-         a.sp add b.1 c.sp               ; increment sp
-         a.mdr add b.0 !neg@fetch        ; if mdr >= 0 branch to fetch, else branch to specified address
-         a.ir and b.m12 c.pc br@fetch
+         a.sp c.mar                     	; Get the top of stack's address
+         rd									; Read the value
+         a.mar c.mdr						; Save the branch-to address in mdr to check the condition later
+         a.sp add b.1 c.sp					; Pop the top of stack
+         a.mdr add b.0 !neg@fetch			; Force the check to see if the condition (the value must be negative) is met
+         a.ir and b.m12 c.pc br@fetch		; Branch to the specified address
 
 L1110:   ; brz (branch on zero) ==============================================
-         a.sp c.mar                      ; pop top of stack and read its value
-         a.sp add b.1 c.sp rd
-         a.mdr add b.0 !zer@fetch        ; if mdr is not 0 branch to fetch, else branch to address
-         a.ir and b.m12 c.pc br@fetch
+         a.sp c.mar                     ; Get the top of stack's address
+         a.sp add b.1 c.sp rd			; Read the value on top of stack and pop it
+         a.mdr add b.0 !zer@fetch       ; Force the check to see if the condition (the value must be 0) is met
+         a.ir and b.m12 c.pc br@fetch	; Branch to the specified address
    
 L1111:   ; trap (I/O instructions + halt instruction) =============================================
          br@fetch    ; The simulator handles all trap instructions. Wait until the data has been entered, then fetch a new instruction. If HALT is used, terminate unconditionally
